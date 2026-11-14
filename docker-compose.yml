@@ -129,6 +129,8 @@ services:
     environment:
       <<: *entorno-node
       API_PORT: 3000
+      # Secreto para firmar los tokens de sesión. Sin él la API no arranca.
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "${API_PORT:-3000}:3000"
 

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
+import { MENSAJES, tieneAccesoCurso } from "../auth.js";
 import {
   TOPICS,
   type Minijuego,
@@ -12,7 +13,6 @@ type Productor = Awaited<ReturnType<typeof crearProductor>>;
 
 interface CuerpoPartida {
   curso_id: string;
-  alumno_id: string;
   minijuego: Minijuego;
   respuestas: RespuestaEvento[];
 }
@@ -40,10 +40,9 @@ export async function rutasPartidas(app: FastifyInstance, opts: { productor: Pro
           "Guarda la partida y publica partida.finalizada. No espera a los consumidores: responde enseguida.",
         body: {
           type: "object",
-          required: ["curso_id", "alumno_id", "minijuego", "respuestas"],
+          required: ["curso_id", "minijuego", "respuestas"],
           properties: {
             curso_id: { type: "string" },
-            alumno_id: { type: "string" },
             minijuego: {
               type: "string",
               enum: [
@@ -73,7 +72,12 @@ export async function rutasPartidas(app: FastifyInstance, opts: { productor: Pro
       },
     },
     async (request, reply) => {
-      const { curso_id, alumno_id, minijuego, respuestas } = request.body;
+      const { curso_id, minijuego, respuestas } = request.body;
+      // El alumno sale del token, nunca del cuerpo: nadie puede jugar a nombre de otro.
+      if (!(await tieneAccesoCurso(request.user, curso_id, ["alumno"]))) {
+        return reply.code(403).send({ error: MENSAJES.sinPermiso });
+      }
+      const alumno_id = request.user.id;
 
       // TODO(PoC): corregir las respuestas contra las preguntas de PostgreSQL
       // en lugar de confiar en el campo "correcta" que manda el cliente.

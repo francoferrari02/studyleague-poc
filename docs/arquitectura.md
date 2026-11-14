@@ -27,5 +27,6 @@ Resumen técnico para el equipo. El razonamiento completo (necesidades del negoc
 
 - **Un solo lenguaje (TypeScript):** la API, los consumidores y la web comparten los contratos de eventos de `packages/shared`.
 - **Cliente de Kafka `@confluentinc/kafka-javascript`:** cliente mantenido por Confluent sobre librdkafka, con una API compatible con KafkaJS. Se eligió en lugar de KafkaJS porque KafkaJS ya no recibe mantenimiento activo y la PoC usa Kafka 4.x.
+- **Autenticación simple:** `POST /auth/alumno` y `POST /auth/docente` devuelven un JWT (`@fastify/jwt`, 12 h) con `{ id, rol }`; las claves están hasheadas con bcrypt (pgcrypto en el seed, `bcryptjs` en la API). Un hook global exige el token salvo en `/health`, `/docs` y `/auth/*`. Un alumno solo opera sobre los cursos en los que está inscripto y como él mismo (el `alumno_id` sale del token); un docente, solo sobre sus cursos. Sin token: 401; sin permiso: 403.
 - **Productor idempotente** (`idempotent: true`, `acks: -1`): evita duplicados por reintentos del propio productor; los consumidores igual son idempotentes.
 - **Pendiente: transactional outbox.** La tabla `outbox` ya existe en el esquema; falta que la API escriba ahí en la misma transacción que la partida y que un proceso publique lo pendiente.

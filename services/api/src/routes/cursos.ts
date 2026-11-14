@@ -1,11 +1,15 @@
 import type { FastifyInstance } from "fastify";
 import { claveRanking, semanaIso } from "@studyleague/shared";
-import { redis } from "../clients.js";
+import { db, redis } from "../clients.js";
+import { exigirCurso } from "../auth.js";
 
 export async function rutasCursos(app: FastifyInstance) {
   app.get<{ Params: { cursoId: string } }>(
     "/cursos/:cursoId/ranking",
-    { schema: { summary: "Ranking semanal del curso (lee Redis)" } },
+    {
+      schema: { summary: "Ranking semanal del curso (lee Redis)", tags: ["cursos"] },
+      preHandler: exigirCurso("alumno", "docente"),
+    },
     async (request) => {
       const semana = semanaIso();
       const filas = await redis.zrevrange(claveRanking(request.params.cursoId, semana), 0, -1, "WITHSCORES");
@@ -17,6 +21,28 @@ export async function rutasCursos(app: FastifyInstance) {
     },
   );
 
-  // TODO(PoC): GET /cursos/:cursoId/analitica (tabla analitica_concepto) para la pantalla D6
-  // TODO(PoC): GET /docentes/:docenteId/notificaciones para la pantalla D8
+  // Versión mínima para verificar analitica-consumer (C1). Los KPIs de la pantalla D6 quedan para B6.
+  app.get<{ Params: { cursoId: string } }>(
+    "/cursos/:cursoId/analitica",
+    {
+      schema: {
+        summary: "Aciertos por concepto del curso (tabla analitica_concepto). Solo el docente del curso.",
+        tags: ["docente"],
+      },
+      preHandler: exigirCurso("docente"),
+    },
+    async (request) => {
+      const { rows } = await db.query(
+        `SELECT a.concepto_id, c.nombre, a.respuestas, a.aciertos,
+                round(a.aciertos::numeric / NULLIF(a.respuestas, 0), 2)::float AS porcentaje_aciertos,
+                a.alerta_enviada, a.actualizado_en
+           FROM analitica_concepto a
+           JOIN conceptos c ON c.id = a.concepto_id
+          WHERE a.curso_id = $1
+          ORDER BY porcentaje_aciertos NULLS LAST, a.concepto_id`,
+        [request.params.cursoId],
+      );
+      return { curso_id: request.params.cursoId, conceptos: rows };
+    },
+  );
 }

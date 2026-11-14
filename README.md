@@ -34,8 +34,22 @@ No son microservicios: es una API principal más consumidores livianos. Detalle 
 
 ```bash
 cp .env.example .env
+# Completá JWT_SECRET en .env (mínimo 32 caracteres), por ejemplo con:
+#   sed -i.bak "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" .env
 docker compose up -d --build
 ```
+
+Los datos de ejemplo (`infra/postgres/init`) solo se cargan con el volumen vacío: para recargarlos, `docker compose down -v`.
+
+**Usuarios de prueba** (solo para la PoC):
+
+| Rol | Usuario | Clave |
+| --- | --- | --- |
+| Alumno (Tomás R., `alu-01`) | `tomas` | `alumno123` |
+| Otros 29 alumnos de Biología · 2.º B | `alu-02` … `alu-30` | `alumno123` |
+| Docente (Prof. Laura Gómez) | `laura.gomez` | `docente123` |
+
+Todas las rutas piden `Authorization: Bearer <token>` salvo `/health`, `/docs` y `/auth/*`. El token se obtiene con `POST /auth/alumno` o `POST /auth/docente` (`{ "usuario", "clave" }`) y vence en 12 h. En Swagger, pegalo en el botón **Authorize**.
 
 | Qué | Dirección |
 | --- | --- |

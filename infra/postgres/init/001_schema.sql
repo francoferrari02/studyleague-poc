@@ -2,6 +2,9 @@
 -- PostgreSQL (relacional, ACID) guarda lo que necesita integridad: cursos, preguntas y partidas.
 -- El ranking vive en Redis; la analítica usa la tabla agregada analitica_concepto.
 
+-- pgcrypto: el seed genera los hashes bcrypt de las claves de prueba con crypt(..., gen_salt('bf')).
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 CREATE TABLE escuelas (
   id          TEXT PRIMARY KEY,
   nombre      TEXT NOT NULL
@@ -11,14 +14,18 @@ CREATE TABLE docentes (
   id          TEXT PRIMARY KEY,
   escuela_id  TEXT NOT NULL REFERENCES escuelas(id),
   nombre      TEXT NOT NULL,
-  email       TEXT NOT NULL UNIQUE
+  email       TEXT NOT NULL UNIQUE,
+  usuario     TEXT NOT NULL UNIQUE,
+  clave_hash  TEXT NOT NULL                    -- bcrypt ($2a$); la API compara con bcryptjs
 );
 
 CREATE TABLE alumnos (
   id          TEXT PRIMARY KEY,
   escuela_id  TEXT NOT NULL REFERENCES escuelas(id),
   -- Por privacidad, en pantallas se muestra solo nombre + inicial del apellido.
-  nombre_visible TEXT NOT NULL
+  nombre_visible TEXT NOT NULL,
+  usuario     TEXT NOT NULL UNIQUE,
+  clave_hash  TEXT NOT NULL                    -- bcrypt ($2a$); la API compara con bcryptjs
 );
 
 CREATE TABLE cursos (
