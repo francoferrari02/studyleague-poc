@@ -1,0 +1,22 @@
+# Proxy del deploy en la nube (docker-compose.prod.yml).
+# Caddy obtiene el certificado HTTPS solo, a partir del dominio.
+# Todo queda detrás de usuario y contraseña (basic auth); Kafka, PostgreSQL y Redis no se exponen.
+
+{$DOMINIO} {
+	basic_auth {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
+
+	handle_path /api/* {
+		reverse_proxy api:3000
+	}
+
+	# Kafka UI corre con SERVER_SERVLET_CONTEXT_PATH=/kafka-ui, por eso no se recorta la ruta.
+	handle /kafka-ui* {
+		reverse_proxy kafka-ui:8080
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+}

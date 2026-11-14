@@ -1,0 +1,65 @@
+/* Sistema visual de los mockups (sección "Guía de estilo" de StudyLeague · Mockups PoC). */
+:root {
+  /* Marca */
+  --violeta: #6d4aff;
+  --violeta-oscuro: #4b2fd1;
+  --violeta-suave: #ede8ff;
+
+  /* Colores con significado: usarlos solo para eso */
+  --amarillo: #ffc93c; /* puntos, rachas, puesto 1 */
+  --verde: #22c55e; /* acierto, dominio alto, subir en el ranking */
+  --coral: #ff5c7a; /* error, bajo dominio */
+  --azul: #38bdf8; /* información, tiempo */
+  --naranja: #ff9f43; /* dominio medio */
+
+  /* Neutros */
+  --fondo-alumno: #f7f5ff;
+  --fondo-docente: #f8f9fc;
+  --superficie: #ffffff;
+  --texto: #1e1b3a;
+  --texto-secundario: #6b6890;
+  --borde: #e4e0f5;
+
+  /* Podio */
+  --oro: #ffc93c;
+  --plata: #c7ccd9;
+  --bronce: #e89b5b;
+
+  /* Tipografía */
+  --fuente-titulo: "Fredoka", system-ui, sans-serif;
+  --fuente-alumno: "Nunito", system-ui, sans-serif;
+  --fuente-docente: "Inter", system-ui, sans-serif;
+
+  /* Forma */
+  --radio-boton: 16px;
+  --radio-tarjeta-alumno: 20px;
+  --radio-tarjeta-docente: 12px;
+  --sombra: 0 2px 8px rgba(30, 27, 58, 0.08);
+  --espacio: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--texto);
+}
+
+/* Botón principal del alumno: sombra sólida inferior que simula un botón físico */
+.boton-principal {
+  width: 100%;
+  height: 56px;
+  border: none;
+  border-radius: var(--radio-boton);
+  background: var(--violeta);
+  color: #fff;
+  font: 700 18px var(--fuente-alumno);
+  box-shadow: 0 4px 0 var(--violeta-oscuro);
+  cursor: pointer;
+}
+.boton-principal:active {
+  transform: translateY(4px);
+  box-shadow: none;
+}

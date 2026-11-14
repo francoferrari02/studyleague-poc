@@ -1,0 +1,163 @@
+# StudyLeague · prueba de concepto
+#   cp .env.example .env
+#   docker compose up -d --build
+# Web: http://localhost:5173 · API (Swagger): http://localhost:3000/docs · Kafka UI: http://localhost:8080
+
+name: studyleague
+
+x-servicio-node: &servicio-node
+  restart: unless-stopped
+  environment: &entorno-node
+    KAFKA_BROKERS: kafka:9092
+    DATABASE_URL: postgres://${POSTGRES_USER:-studyleague}:${POSTGRES_PASSWORD:-studyleague}@postgres:5432/${POSTGRES_DB:-studyleague}
+    REDIS_URL: redis://redis:6379
+    BAJO_DOMINIO_MIN_RESPUESTAS: ${BAJO_DOMINIO_MIN_RESPUESTAS:-10}
+    BAJO_DOMINIO_UMBRAL: ${BAJO_DOMINIO_UMBRAL:-0.40}
+  depends_on: &dependencias-node
+    kafka-init:
+      condition: service_completed_successfully
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  # ---------- Infraestructura ----------
+
+  kafka:
+    image: apache/kafka:4.1.0
+    # Un solo broker en modo KRaft (sin ZooKeeper). Riesgo aceptado en la PoC:
+    # en producción serían 3 brokers con replicación 3.
+    environment:
+      CLUSTER_ID: studyleague-poc-cluster-01
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    ports:
+      - "9094:9094" # para correr servicios con `npm run dev` fuera de Docker
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+    restart: unless-stopped
+
+  kafka-init:
+    image: apache/kafka:4.1.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+      PARTIDA_PARTICIONES: ${PARTIDA_PARTICIONES:-3}
+      RETENCION_HORAS: ${RETENCION_HORAS:-168}
+    volumes:
+      - ./infra/kafka/create-topics.sh:/create-topics.sh:ro
+    entrypoint: ["bash", "/create-topics.sh"]
+    restart: "no"
+
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:latest
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_CLUSTERS_0_NAME: studyleague
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    ports:
+      - "${KAFKA_UI_PORT:-8080}:8080"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-studyleague}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-studyleague}
+      POSTGRES_DB: ${POSTGRES_DB:-studyleague}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-studyleague} -d ${POSTGRES_DB:-studyleague}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  # ---------- Aplicación ----------
+
+  api:
+    <<: *servicio-node
+    build: { context: ., args: { WORKSPACE: services/api } }
+    environment:
+      <<: *entorno-node
+      API_PORT: 3000
+    ports:
+      - "${API_PORT:-3000}:3000"
+
+  ranking-consumer:
+    <<: *servicio-node
+    build: { context: ., args: { WORKSPACE: services/ranking-consumer } }
+
+  rachas-consumer:
+    <<: *servicio-node
+    build: { context: ., args: { WORKSPACE: services/rachas-consumer } }
+
+  analitica-consumer:
+    <<: *servicio-node
+    build: { context: ., args: { WORKSPACE: services/analitica-consumer } }
+
+  notificaciones-consumer:
+    <<: *servicio-node
+    build: { context: ., args: { WORKSPACE: services/notificaciones-consumer } }
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-5173}:80"
+    restart: unless-stopped
+
+  # ---------- Herramientas (no arrancan con `up`) ----------
+
+  simulador:
+    profiles: ["tools"]
+    build: { context: ., args: { WORKSPACE: tools/simulador } }
+    environment:
+      API_URL: http://api:3000
+    depends_on:
+      - api
+
+volumes:
+  kafka-data:
+  postgres-data:
+  redis-data:

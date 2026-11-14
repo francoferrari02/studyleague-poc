@@ -1,0 +1,41 @@
+# Deploy en una máquina virtual en la nube:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Solo Caddy queda expuesto (80/443, con HTTPS y basic auth).
+# Kafka, PostgreSQL, Redis, la API y Kafka UI quedan en la red interna.
+
+services:
+  caddy:
+    image: caddy:2
+    environment:
+      DOMINIO: ${DOMINIO}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - web
+      - api
+      - kafka-ui
+    restart: unless-stopped
+
+  kafka:
+    ports: !reset []
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  api:
+    ports: !reset []
+  web:
+    ports: !reset []
+  kafka-ui:
+    ports: !reset []
+    environment:
+      SERVER_SERVLET_CONTEXT_PATH: /kafka-ui
+
+volumes:
+  caddy-data:
