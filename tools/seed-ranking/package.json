@@ -1,0 +1,15 @@
+{
+  "name": "@studyleague/seed-ranking",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@studyleague/shared": "0.1.0",
+    "ioredis": "^5.4.0"
+  }
+}

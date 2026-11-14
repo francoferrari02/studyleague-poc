@@ -57,6 +57,13 @@ Todas las rutas piden `Authorization: Bearer <token>` salvo `/health`, `/docs` y
 | API y Swagger | http://localhost:3000/docs |
 | Kafka UI | http://localhost:8080 |
 
+Para cargar en Redis el ranking semanal de Biología · 2.º B del mockup A14 (necesita Node y `npm install`):
+
+```bash
+npm run seed:ranking                # Tomás con 1.270 puntos: estado "antes de jugar"
+npm run seed:ranking -- --despues   # Tomás con 2.090 puntos (puesto 4)
+```
+
 Para simular un pico de día de juego:
 
 ```bash

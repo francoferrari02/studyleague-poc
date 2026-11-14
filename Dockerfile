@@ -13,6 +13,7 @@ COPY services/rachas-consumer/package.json services/rachas-consumer/
 COPY services/analitica-consumer/package.json services/analitica-consumer/
 COPY services/notificaciones-consumer/package.json services/notificaciones-consumer/
 COPY tools/simulador/package.json tools/simulador/
+COPY tools/seed-ranking/package.json tools/seed-ranking/
 COPY apps/web/package.json apps/web/
 RUN npm ci --workspace packages/shared --workspace ${WORKSPACE} --include-workspace-root
 COPY packages/shared packages/shared
