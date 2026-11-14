@@ -35,3 +35,11 @@ Resumen técnico para el equipo. El razonamiento completo (necesidades del negoc
 - **Transactional outbox:** `POST /partidas` guarda en **una sola transacción** la partida, sus respuestas y el evento `partida.finalizada` en la tabla `outbox` (su `event_id` es la PK). Un publicador dentro del proceso de la API (`services/api/src/outbox.ts`) lee cada 200 ms lo pendiente (`FOR UPDATE SKIP LOCKED`, lotes de 100), lo publica con clave `curso_id` y marca `publicado_en`; además se dispara apenas se confirma cada partida. Si Kafka no responde (el envío vence a los 10 s), no marca nada y reintenta. Con Kafka caído la partida igual se guarda y se responde 202.
 - **Estado del ranking tras una partida (B4):** `partidas.event_id` relaciona la partida con su evento. Antes de guardar, la API anota el puesto actual en `puesto_antes:<event_id>` (Redis, 1 h). `ranking-consumer` marca `procesado:ranking:<event_id>` y suma los puntos en un único script Lua atómico; `GET /partidas/:partidaId/ranking` responde `pendiente` hasta que existe esa marca.
 - **Recuperación tras reiniciar el broker:** los consumidores usan una sesión de grupo de 10 s (heartbeat cada 3 s), así detectan pronto que perdieron el grupo y se vuelven a unir.
+
+## Arranque y reinicio con Kafka caído
+
+La conexión del productor se crea dentro del publicador, cuando encuentra eventos pendientes, sin bloquear el arranque HTTP. `/health` comprueba PostgreSQL y Redis, no Kafka; login sigue disponible. `POST /partidas` devuelve 202 tras guardar partida, respuestas y outbox en PostgreSQL. El publicador reintenta con backoff de 200 ms hasta 5 s entre fallos (el cliente Kafka tiene además sus propios reintentos y timeout de envío de 10 s). Publica secuencialmente el lote ordenado por `creado_en`; solo marca el lote tras confirmar todos los envíos. Si falla parcialmente, puede repetir eventos: los consumidores los deduplican.
+
+Se reproduce con `bash scripts/verificar-resiliencia.sh`: detiene Kafka, reinicia API, prueba salud y login, guarda tres partidas pendientes y recupera Kafka. Antes del cambio, la espera de `crearProductor` anterior a `listen` impedía servir salud y login.
+
+El orden descrito aplica al publicador único de esta PoC. Varias instancias con `SKIP LOCKED` requieren serializar por curso para preservar ese orden entre publicadores.

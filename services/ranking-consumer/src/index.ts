@@ -4,7 +4,7 @@
  * (sorted set). Es procesamiento de flujos de eventos: un acumulado que se
  * actualiza con cada evento.
  *
- * Idempotencia: guarda el event_id procesado con SET NX; si el mismo evento
+ * Idempotencia: guarda el event_id y suma puntos en un único script Lua atómico; si el mismo evento
  * llega dos veces (entrega al menos una vez), el puntaje se suma una sola vez.
  */
 import { Redis, type Result } from "ioredis";

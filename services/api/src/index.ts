@@ -2,7 +2,6 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
-import { crearProductor } from "@studyleague/shared";
 import { config } from "./config.js";
 import { configurarAutenticacion } from "./auth.js";
 import { rutasAuth } from "./routes/auth.js";
@@ -35,8 +34,7 @@ await app.register(swaggerUi, { routePrefix: "/docs" });
 
 await configurarAutenticacion(app);
 
-const productor = await crearProductor("api");
-const outbox = iniciarPublicadorOutbox(productor, app.log);
+const outbox = iniciarPublicadorOutbox(app.log);
 
 await app.register(rutasSalud);
 await app.register(rutasAuth);
@@ -48,7 +46,7 @@ await app.register(rutasMetricas);
 const cerrar = async () => {
   outbox.detener();
   await app.close();
-  await productor.desconectar();
+  await outbox.cerrar();
   process.exit(0);
 };
 process.on("SIGTERM", cerrar);

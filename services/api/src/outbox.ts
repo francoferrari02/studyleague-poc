@@ -19,7 +19,11 @@ type Productor = Awaited<ReturnType<typeof crearProductor>>;
 const INTERVALO_MS = 200;
 const LOTE = 100;
 
-export function iniciarPublicadorOutbox(productor: Productor, log: FastifyBaseLogger) {
+export function iniciarPublicadorOutbox(log: FastifyBaseLogger) {
+  let productor: Productor | undefined;
+  let proximoIntento = 0;
+  let esperaMs = 200;
+  let detenido = false;
   let corriendo = false;
   let otraVuelta = false;
   let kafkaCaido = false;
@@ -42,7 +46,8 @@ export function iniciarPublicadorOutbox(productor: Productor, log: FastifyBaseLo
         return 0;
       }
       // librdkafka mantiene el orden de envío dentro de cada partición (productor idempotente).
-      await Promise.all(rows.map((fila) => productor.publicar(fila.topic, fila.clave, fila.payload)));
+      productor ??= await crearProductor("api");
+      for (const fila of rows) await productor.publicar(fila.topic, fila.clave, fila.payload);
       await cliente.query("UPDATE outbox SET publicado_en = clock_timestamp() WHERE event_id = ANY($1::uuid[])", [
         rows.map((fila) => fila.event_id),
       ]);
@@ -57,6 +62,7 @@ export function iniciarPublicadorOutbox(productor: Productor, log: FastifyBaseLo
   }
 
   async function vuelta() {
+    if (detenido || Date.now() < proximoIntento) return;
     if (corriendo) {
       otraVuelta = true;
       return;
@@ -67,6 +73,7 @@ export function iniciarPublicadorOutbox(productor: Productor, log: FastifyBaseLo
       do {
         otraVuelta = false;
         publicados = await publicarLote();
+        esperaMs = 200;
         if (publicados > 0) log.debug({ publicados }, "outbox: eventos publicados");
         if (kafkaCaido) {
           kafkaCaido = false;
@@ -76,6 +83,8 @@ export function iniciarPublicadorOutbox(productor: Productor, log: FastifyBaseLo
     } catch (error) {
       if (!kafkaCaido) log.warn({ err: error }, "outbox: no se pudo publicar, se reintenta en la próxima vuelta");
       kafkaCaido = true;
+      proximoIntento = Date.now() + esperaMs;
+      esperaMs = Math.min(esperaMs * 2, 5000);
     } finally {
       corriendo = false;
     }
@@ -86,7 +95,8 @@ export function iniciarPublicadorOutbox(productor: Productor, log: FastifyBaseLo
   return {
     /** Se llama apenas se confirma una partida: la latencia no depende del intervalo. */
     despertar: () => void vuelta(),
-    detener: () => clearInterval(temporizador),
+    detener: () => { detenido = true; clearInterval(temporizador); },
+    cerrar: async () => { await productor?.desconectar(); },
   };
 }
 

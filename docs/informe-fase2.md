@@ -22,3 +22,5 @@ R2: contadores acordados: Célula 42/51, Fotosíntesis 32/47, Membrana 21/38, Or
 Navegación verificada en el HTML: D2 → D6 desde la tarjeta de Biología o Analítica; D6 → D7 desde Ver detalle. D3 = Crear curso; D4 = Curso creado (modal y código); D5 = Cargar contenido. D3–D5 quedan fuera de la implementación de esta fase. No se agrega una pantalla de resumen.
 
 R2 verificado: dos ejecuciones consecutivas de `npm run demo:reset` terminaron en código 0 con exactamente cinco agregados y una notificación de Mitosis; Tomás volvió a 1270/7º. Build y Compose válidos.
+
+R3 verificado con Docker: antes del cambio `/health` y login fallaron tras reiniciar la API con Kafka detenido; después, salud/login OK y tres partidas 202 pendientes. Al iniciar Kafka el outbox se drenó en aproximadamente 4 s. `npm run build` y `docker compose config -q` verdes. Productor diferido, publicaciones secuenciales y backoff 200–5000 ms. Corregido comentario de idempotencia Lua.
