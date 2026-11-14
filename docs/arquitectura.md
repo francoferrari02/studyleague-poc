@@ -23,6 +23,8 @@ Resumen técnico para el equipo. El razonamiento completo (necesidades del negoc
 | Evento repetido | Reenviar el mismo mensaje desde Kafka UI: el log dice "evento repetido" y el puntaje no cambia. |
 | Bajo dominio | `docker compose run --rm simulador --alumnos 50 --bajo-dominio mitosis`: aparece `concepto.bajo_dominio` y el aviso al docente. |
 
+`./scripts/verificar-fase1.sh` corre todos estos escenarios (más el outbox con Kafka detenido, la seguridad y el pico de 200 alumnos) desde cero con `docker compose down -v` y sale con código distinto de 0 si alguno falla.
+
 ## Decisiones del esqueleto
 
 - **Un solo lenguaje (TypeScript):** la API, los consumidores y la web comparten los contratos de eventos de `packages/shared`.
