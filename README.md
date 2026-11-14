@@ -117,3 +117,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ## Estado
 
 Esqueleto inicial. Los puntos a implementar están marcados con `TODO(PoC)` en el código (`grep -rn "TODO(PoC)" services apps`).
+
+## Antes de cada demo/ensayo
+
+Con el stack iniciado, ejecutá `npm run demo:reset`. Es un reset **exclusivo de esta PoC**: borra todas las partidas, outbox, notificaciones, proyecciones, ranking, rachas y métricas; conserva usuarios, cursos y preguntas. Detiene los productores/consumidores y recrea los tres tópicos para que no se reproduzcan eventos viejos. Se puede repetir. Requiere Node 22, npm, Docker Compose y `rg`.
+
+Mitosis arranca en 6/18 (33 %, frente al 34 % ilustrativo del mockup), con alerta enviada y un aviso existente. Organelas arranca en 14/30 (47 %), sin aviso: con seis respuestas incorrectas más cae a 39 %. Los demás contadores son 21/38, 32/47 y 42/51 (55 %, 68 %, 82 %). El reset usa Bash + SQL para reutilizar Compose y el seed sin sumar dependencias.

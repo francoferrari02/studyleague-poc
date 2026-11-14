@@ -12,7 +12,13 @@ Se exportó el submódulo puro `@studyleague/shared/ranking` para que el seed no
 
 Los 29 frames se extrajeron a `.tmp-mockups/`, ignorada por Git; son bundles anidados y se leyó su template JSON interno para obtener HTML/CSS reales. Se eliminará la carpeta al cerrar la fase.
 
-## Discrepancias pendientes de definición
+## Decisiones confirmadas
 
 - D1 es Ingreso docente y D2 es Mis cursos en el plan, mapa de rutas y frames; la consigna describe otras funciones para esos códigos.
 - D6 muestra Mitosis 34%/18 respuestas, Organelas 47%/31, Membrana celular 55%/39, Fotosíntesis 68%/47 y Célula 82%/52. Varias combinaciones no corresponden a porcentajes redondeados de aciertos enteros. La consigna pide unas 18 respuestas por concepto. Se consultó cómo reconciliar los datos antes de R2.
+
+R2: contadores acordados: Célula 42/51, Fotosíntesis 32/47, Membrana 21/38, Organelas 14/30, Mitosis 6/18. Mitosis conserva alerta enviada y notificación; el frontend calculará todos los porcentajes. D7 muestra 18 respuestas: se conserva ese conteo y se acepta 33 % en vez de 34 %.
+
+Navegación verificada en el HTML: D2 → D6 desde la tarjeta de Biología o Analítica; D6 → D7 desde Ver detalle. D3 = Crear curso; D4 = Curso creado (modal y código); D5 = Cargar contenido. D3–D5 quedan fuera de la implementación de esta fase. No se agrega una pantalla de resumen.
+
+R2 verificado: dos ejecuciones consecutivas de `npm run demo:reset` terminaron en código 0 con exactamente cinco agregados y una notificación de Mitosis; Tomás volvió a 1270/7º. Build y Compose válidos.

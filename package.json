@@ -2,7 +2,7 @@
   "name": "studyleague-poc",
   "private": true,
   "version": "0.1.0",
-  "description": "Prueba de concepto de StudyLeague: arquitectura orientada a eventos con Apache Kafka (TP Integrador Final, Ingeniería de Software II).",
+  "description": "Prueba de concepto de StudyLeague: arquitectura orientada a eventos con Apache Kafka (TP Integrador Final, Ingenier\u00eda de Software II).",
   "workspaces": [
     "packages/*",
     "services/*",
@@ -17,7 +17,8 @@
     "down": "docker compose down",
     "reset": "docker compose down -v",
     "simular": "docker compose run --rm simulador",
-    "seed:ranking": "npm run build -w @studyleague/shared && npm run seed -w @studyleague/seed-ranking --"
+    "seed:ranking": "npm run build -w @studyleague/shared && npm run seed -w @studyleague/seed-ranking --",
+    "demo:reset": "bash scripts/demo-reset.sh"
   },
   "engines": {
     "node": ">=22"
