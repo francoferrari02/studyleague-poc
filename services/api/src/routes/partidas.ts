@@ -6,11 +6,12 @@ import {
   type PartidaFinalizada,
   type RespuestaEvento,
   calcularPuntaje,
+  claveProcesado,
   claveRanking,
   corregirRespuesta,
   semanaIso,
 } from "@studyleague/shared";
-import { MENSAJES, exigirCurso, tieneAccesoCurso } from "../auth.js";
+import { MENSAJES, exigirCurso, exigirRol, tieneAccesoCurso } from "../auth.js";
 import { db, redis } from "../clients.js";
 import type { PublicadorOutbox } from "../outbox.js";
 
@@ -225,6 +226,65 @@ export async function rutasPartidas(app: FastifyInstance, opts: { outbox: Public
           ...(r.palabras_encontradas ? { palabras_encontradas: r.palabras_encontradas } : {}),
         })),
       });
+    },
+  );
+
+  app.get<{ Params: { partidaId: string } }>(
+    "/partidas/:partidaId/ranking",
+    {
+      schema: {
+        summary: "Estado del ranking después de una partida",
+        description:
+          'Mientras ranking-consumer no procesó el evento devuelve { estado: "pendiente" }; después, el puesto nuevo, ' +
+          "el anterior y los compañeros inmediatamente arriba y abajo (A12 → A13). Solo el alumno dueño de la partida.",
+        tags: ["partidas"],
+        params: {
+          type: "object",
+          required: ["partidaId"],
+          properties: { partidaId: { type: "string", format: "uuid" } },
+        },
+      },
+      preHandler: exigirRol("alumno"),
+    },
+    async (request, reply) => {
+      const { rows } = await db.query<{ event_id: string; curso_id: string; alumno_id: string; finalizada_en: Date }>(
+        "SELECT event_id, curso_id, alumno_id, finalizada_en FROM partidas WHERE id = $1",
+        [request.params.partidaId],
+      );
+      const partida = rows[0];
+      if (!partida) return reply.code(404).send({ error: "No encontramos esa partida." });
+      if (partida.alumno_id !== request.user.id) return reply.code(403).send({ error: MENSAJES.sinPermiso });
+
+      // La marca la deja ranking-consumer en el mismo paso atómico en que suma los puntos.
+      if (!(await redis.exists(claveProcesado(partida.event_id)))) return { estado: "pendiente" };
+
+      const clave = claveRanking(partida.curso_id, semanaIso(partida.finalizada_en));
+      const [rango, puntos, antes] = await Promise.all([
+        redis.zrevrank(clave, partida.alumno_id),
+        redis.zscore(clave, partida.alumno_id),
+        redis.get(clavePuestoAntes(partida.event_id)),
+      ]);
+      if (rango === null) return { estado: "pendiente" }; // el ranking de la semana se borró a mano
+
+      const alrededor = await redis.zrevrange(clave, Math.max(0, rango - 1), rango + 1, "WITHSCORES");
+      const vecinos: Array<{ puesto: number; alumno_id: string; puntos: number }> = [];
+      for (let i = 0, puesto = Math.max(0, rango - 1) + 1; i < alrededor.length; i += 2, puesto++) {
+        if (alrededor[i] !== partida.alumno_id) vecinos.push({ puesto, alumno_id: alrededor[i], puntos: Number(alrededor[i + 1]) });
+      }
+      const { rows: nombres } = await db.query<{ id: string; nombre_visible: string }>(
+        "SELECT id, nombre_visible FROM alumnos WHERE id = ANY($1::text[])",
+        [vecinos.map((v) => v.alumno_id)],
+      );
+      const nombrePorId = new Map(nombres.map((n) => [n.id, n.nombre_visible]));
+
+      return {
+        estado: "actualizado",
+        puesto: rango + 1,
+        // null: no estaba en el ranking antes de esta partida (o ya venció el dato, 1 hora).
+        puesto_anterior: antes && antes !== "0" ? Number(antes) : null,
+        puntos: Number(puntos),
+        vecinos: vecinos.map((v) => ({ ...v, nombre_visible: nombrePorId.get(v.alumno_id) ?? null })),
+      };
     },
   );
 }

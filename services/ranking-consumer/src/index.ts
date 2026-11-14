@@ -7,10 +7,11 @@
  * Idempotencia: guarda el event_id procesado con SET NX; si el mismo evento
  * llega dos veces (entrega al menos una vez), el puntaje se suma una sola vez.
  */
-import { Redis } from "ioredis";
+import { Redis, type Result } from "ioredis";
 import {
   CONSUMER_GROUPS,
   TOPICS,
+  claveProcesado,
   claveRanking,
   crearConsumidor,
   crearProductor,
@@ -21,6 +22,22 @@ import {
 
 const SERVICIO = "ranking-consumer";
 const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379");
+redis.defineCommand("sumarSiEsNuevo", {
+  numberOfKeys: 2,
+  // KEYS[1] = procesado:ranking:<event_id>, KEYS[2] = ranking:<curso>:<semana>
+  // ARGV[1] = TTL en segundos, ARGV[2] = puntaje, ARGV[3] = alumno_id
+  lua: `
+    if redis.call("SET", KEYS[1], "1", "EX", ARGV[1], "NX") then
+      redis.call("ZINCRBY", KEYS[2], ARGV[2], ARGV[3])
+      return 1
+    end
+    return 0`,
+});
+declare module "ioredis" {
+  interface RedisCommander<Context> {
+    sumarSiEsNuevo(procesado: string, ranking: string, ttlS: number, puntaje: number, alumnoId: string): Result<number, Context>;
+  }
+}
 const dlq = await crearProductor(SERVICIO);
 
 /** Los event_id procesados se guardan 8 días: más que la retención de Kafka (7 días). */
@@ -38,14 +55,20 @@ await crearConsumidor({
       return;
     }
 
-    const nuevo = await redis.set(`procesado:ranking:${evento.event_id}`, "1", "EX", TTL_IDEMPOTENCIA_S, "NX");
-    if (nuevo === null) {
+    // Marca de procesado y suma de puntos en un solo paso atómico: si el proceso se corta
+    // en el medio no queda el evento marcado sin sus puntos, y quien ve la marca (B4) ya ve el puntaje.
+    const semana = semanaIso(new Date(evento.ocurrido_en));
+    const nuevo = await redis.sumarSiEsNuevo(
+      claveProcesado(evento.event_id),
+      claveRanking(evento.curso_id, semana),
+      TTL_IDEMPOTENCIA_S,
+      evento.puntaje,
+      evento.alumno_id,
+    );
+    if (nuevo === 0) {
       log(SERVICIO, "evento repetido, se descarta", { event_id: evento.event_id });
       return;
     }
-
-    const semana = semanaIso(new Date(evento.ocurrido_en));
-    await redis.zincrby(claveRanking(evento.curso_id, semana), evento.puntaje, evento.alumno_id);
 
     // Latencia de punta a punta: el SLI del white paper (objetivo: p95 < 3 s).
     const latenciaMs = Date.now() - new Date(evento.ocurrido_en).getTime();

@@ -12,3 +12,8 @@ export function semanaIso(fecha = new Date()): string {
 export function claveRanking(cursoId: string, semana = semanaIso()): string {
   return `ranking:${cursoId}:${semana}`;
 }
+
+/** Marca de Redis que deja ranking-consumer al sumar un evento (idempotencia; B4 la usa para saber si ya se procesó). */
+export function claveProcesado(eventId: string): string {
+  return `procesado:ranking:${eventId}`;
+}
