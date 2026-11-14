@@ -61,3 +61,15 @@ export function esPartidaFinalizada(valor: unknown): valor is PartidaFinalizada 
     Array.isArray(v.respuestas)
   );
 }
+
+export function esConceptoBajoDominio(valor: unknown): valor is ConceptoBajoDominio {
+  const v = valor as Partial<ConceptoBajoDominio> | null;
+  return (
+    !!v &&
+    v.tipo === "concepto.bajo_dominio" &&
+    typeof v.event_id === "string" &&
+    typeof v.curso_id === "string" &&
+    typeof v.concepto_id === "string" &&
+    typeof v.porcentaje_aciertos === "number"
+  );
+}

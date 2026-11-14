@@ -10,6 +10,7 @@ import { iniciarPublicadorOutbox } from "./outbox.js";
 import { rutasPartidas } from "./routes/partidas.js";
 import { rutasCursos } from "./routes/cursos.js";
 import { rutasSalud } from "./routes/salud.js";
+import { rutasDocentes } from "./routes/docentes.js";
 
 const app = Fastify({ logger: true });
 
@@ -40,6 +41,7 @@ await app.register(rutasSalud);
 await app.register(rutasAuth);
 await app.register(rutasPartidas, { outbox });
 await app.register(rutasCursos);
+await app.register(rutasDocentes);
 
 const cerrar = async () => {
   outbox.detener();

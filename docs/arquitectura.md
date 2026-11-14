@@ -10,7 +10,7 @@ Resumen técnico para el equipo. El razonamiento completo (necesidades del negoc
 | `ranking-consumer` | Suma puntos al ranking semanal del curso. | Redis (sorted set `ranking:<curso>:<semana>`) |
 | `rachas-consumer` | Actualiza los días seguidos jugados por alumno. | Redis |
 | `analitica-consumer` | Acumula aciertos por concepto y publica `concepto.bajo_dominio`. | PostgreSQL (`analitica_concepto`) |
-| `notificaciones-consumer` | Crea el aviso para el docente del curso. | PostgreSQL (`notificaciones`) |
+| `notificaciones-consumer` | Crea el aviso para el docente del curso ("Biología · 2.º B: Mitosis tiene bajo dominio (34%)"), idempotente por `event_id`. La API lo expone en `GET /docentes/yo/notificaciones` y `PATCH /notificaciones/:id/leida`. | PostgreSQL (`notificaciones`) |
 | `web` | Pantallas del alumno (`/alumno`) y del docente (`/docente`). | — |
 | `kafka` + `kafka-init` + `kafka-ui` | Un broker en modo KRaft, creación de tópicos y monitoreo. | Volumen `kafka-data` |
 
