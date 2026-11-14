@@ -1,3 +1,4 @@
+import { Ingreso } from "./pages-login";
 import { Protegida } from "./auth";
 import { Componentes } from "./components/ui";
 import { Link, Route, Routes } from "react-router-dom";
@@ -30,18 +31,20 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<Portada />} />
+      <Route path="/alumno/ingreso" element={<Ingreso />} />
+      <Route path="/docente/ingreso" element={<Ingreso docente />} />
       <Route element={<Protegida rol="alumno" />}><Route element={<LayoutAlumno />}>
-        {PANTALLAS.filter((p) => p.rol === "alumno").map((p) => (
+        {PANTALLAS.filter((p) => p.rol === "alumno" && !p.ruta.endsWith("ingreso")).map((p) => (
           <Route key={p.ruta} path={p.ruta} element={<Marcador pantalla={p} />} />
         ))}
       </Route>
       </Route><Route element={<Protegida rol="docente" />}><Route element={<LayoutDocente />}>
-        {PANTALLAS.filter((p) => p.rol === "docente").map((p) => (
+        {PANTALLAS.filter((p) => p.rol === "docente" && !p.ruta.endsWith("ingreso")).map((p) => (
           <Route key={p.ruta} path={p.ruta} element={<Marcador pantalla={p} />} />
         ))}
       </Route>
       </Route>
-      <Route path="/componentes" element={<Componentes />} />
+      {import.meta.env.DEV && <Route path="/componentes" element={<Componentes />} />}
     </Routes>
   );
 }
