@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
-import { MENSAJES, tieneAccesoCurso } from "../auth.js";
+import { MENSAJES, exigirCurso, tieneAccesoCurso } from "../auth.js";
+import { db } from "../clients.js";
 import {
   TOPICS,
   type Minijuego,
@@ -30,7 +31,50 @@ function calcularPuntaje(respuestas: RespuestaEvento[]): number {
   }, 0);
 }
 
+const MINIJUEGOS: Minijuego[] = [
+  "verdadero_falso",
+  "trivia",
+  "ordenar_secuencia",
+  "emparejar_conceptos",
+  "definicion_palabras_clave",
+];
+const PREGUNTAS_POR_PARTIDA = 10;
+
 export async function rutasPartidas(app: FastifyInstance, opts: { productor: Productor }) {
+  app.get<{ Params: { cursoId: string }; Querystring: { minijuego: Minijuego } }>(
+    "/cursos/:cursoId/partida-nueva",
+    {
+      schema: {
+        summary: "Preguntas para una partida nueva",
+        description:
+          "Hasta 10 preguntas del curso para ese minijuego, mezcladas al azar. Incluye respuesta_correcta y explicacion " +
+          "para mostrar el resultado al instante (A6, A7); la corrección que vale es la del servidor en POST /partidas.",
+        tags: ["partidas"],
+        querystring: {
+          type: "object",
+          required: ["minijuego"],
+          properties: { minijuego: { type: "string", enum: MINIJUEGOS } },
+        },
+      },
+      preHandler: exigirCurso("alumno", "docente"),
+    },
+    async (request) => {
+      const { cursoId } = request.params;
+      const { minijuego } = request.query;
+      const { rows } = await db.query(
+        `SELECT p.id AS pregunta_id, p.concepto_id, p.enunciado, p.opciones,
+                p.respuesta AS respuesta_correcta, p.explicacion
+           FROM preguntas p
+           JOIN conceptos c ON c.id = p.concepto_id
+          WHERE c.curso_id = $1 AND p.minijuego = $2
+          ORDER BY random()
+          LIMIT $3`,
+        [cursoId, minijuego, PREGUNTAS_POR_PARTIDA],
+      );
+      return { curso_id: cursoId, minijuego, preguntas: rows };
+    },
+  );
+
   app.post<{ Body: CuerpoPartida }>(
     "/partidas",
     {
@@ -45,13 +89,7 @@ export async function rutasPartidas(app: FastifyInstance, opts: { productor: Pro
             curso_id: { type: "string" },
             minijuego: {
               type: "string",
-              enum: [
-                "verdadero_falso",
-                "trivia",
-                "ordenar_secuencia",
-                "emparejar_conceptos",
-                "definicion_palabras_clave",
-              ],
+              enum: MINIJUEGOS,
             },
             respuestas: {
               type: "array",
