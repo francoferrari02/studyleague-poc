@@ -25,6 +25,10 @@ services:
   # ---------- Infraestructura ----------
 
   kafka:
+    # Versiones fijadas el 14/11/2026 (I3). Ninguna imagen usa "latest" para que
+    # todos los integrantes y la VM de la nube corran exactamente lo mismo.
+    # apache/kafka 4.1.0: la del white paper; primera línea 4.x estable con KRaft
+    # y probada en esta PoC (arm64 y amd64).
     image: apache/kafka:4.1.0
     # Un solo broker en modo KRaft (sin ZooKeeper). Riesgo aceptado en la PoC:
     # en producción serían 3 brokers con replicación 3.
@@ -55,6 +59,7 @@ services:
     restart: unless-stopped
 
   kafka-init:
+    # Misma imagen que el broker: trae los scripts kafka-topics.sh.
     image: apache/kafka:4.1.0
     depends_on:
       kafka:
@@ -69,7 +74,9 @@ services:
     restart: "no"
 
   kafka-ui:
-    image: ghcr.io/kafbat/kafka-ui:latest
+    # kafbat/kafka-ui v1.5.0 (14/11/2026): era la versión que publicaba "latest"
+    # (mismo digest) y la probamos contra Kafka 4.1 en I1.
+    image: ghcr.io/kafbat/kafka-ui:v1.5.0
     depends_on:
       kafka:
         condition: service_healthy
@@ -81,7 +88,8 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:17-alpine
+    # PostgreSQL 17.12 (14/11/2026): último parche de la 17, la usada desde el esqueleto.
+    image: postgres:17.12-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-studyleague}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-studyleague}
@@ -99,7 +107,8 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
+    # Redis 7.4.12 (14/11/2026): último parche de la 7, la usada desde el esqueleto.
+    image: redis:7.4.12-alpine
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis-data:/data

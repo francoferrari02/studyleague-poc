@@ -5,7 +5,9 @@
 
 services:
   caddy:
-    image: caddy:2
+    # Caddy 2.11.7 (14/11/2026): parche estable de la 2.11 con más de dos semanas
+    # publicado (las 2.11.8 y 2.11.9 son de los últimos días).
+    image: caddy:2.11.7
     environment:
       DOMINIO: ${DOMINIO}
       BASIC_AUTH_USER: ${BASIC_AUTH_USER}

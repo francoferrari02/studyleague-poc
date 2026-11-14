@@ -1,7 +1,8 @@
 # Imagen única para la API, los consumidores y el simulador (npm workspaces).
 # Se elige el servicio con el build arg WORKSPACE, por ejemplo services/api.
 # Debian slim y no Alpine: @confluentinc/kafka-javascript trae librdkafka precompilada para glibc.
-FROM node:22-bookworm-slim AS build
+# Node 22.23.5 fijado el 14/11/2026 (I3): la que resolvía 22-bookworm-slim al probar I1.
+FROM node:22.23.5-bookworm-slim AS build
 WORKDIR /app
 ARG WORKSPACE
 COPY package.json package-lock.json tsconfig.base.json ./
@@ -19,7 +20,7 @@ COPY ${WORKSPACE} ${WORKSPACE}
 RUN npm run build -w packages/shared && npm run build -w ${WORKSPACE} \
  && npm prune --omit=dev --workspace packages/shared --workspace ${WORKSPACE}
 
-FROM node:22-bookworm-slim
+FROM node:22.23.5-bookworm-slim
 WORKDIR /app
 ARG WORKSPACE
 ENV NODE_ENV=production
