@@ -18,7 +18,7 @@ Resumen técnico para el equipo. El razonamiento completo (necesidades del negoc
 
 | Criterio | Cómo se demuestra |
 | --- | --- |
-| Ranking actualizado en menos de 3 s | Jugar una partida desde Swagger y ver el ranking; `ranking-consumer` loguea `latencia_ms`. |
+| Ranking actualizado en menos de 3 s | Jugar una partida desde Swagger y ver el ranking; `ranking-consumer` loguea `latencia_ms` y la guarda en la lista de Redis `metricas:latencia_ranking` (últimas 1.000). `GET /metricas` devuelve `{ muestras, p50_ms, p95_ms, max_ms }`. |
 | Consumidor caído | `docker compose stop analitica-consumer`, correr el simulador, `docker compose start analitica-consumer`: el lag del grupo vuelve a 0 en Kafka UI. |
 | Evento repetido | Reenviar el mismo mensaje desde Kafka UI: el log dice "evento repetido" y el puntaje no cambia. |
 | Bajo dominio | `docker compose run --rm simulador --alumnos 50 --bajo-dominio mitosis`: aparece `concepto.bajo_dominio` y el aviso al docente. |

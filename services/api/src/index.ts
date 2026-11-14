@@ -11,6 +11,7 @@ import { rutasPartidas } from "./routes/partidas.js";
 import { rutasCursos } from "./routes/cursos.js";
 import { rutasSalud } from "./routes/salud.js";
 import { rutasDocentes } from "./routes/docentes.js";
+import { rutasMetricas } from "./routes/metricas.js";
 
 const app = Fastify({ logger: true });
 
@@ -42,6 +43,7 @@ await app.register(rutasAuth);
 await app.register(rutasPartidas, { outbox });
 await app.register(rutasCursos);
 await app.register(rutasDocentes);
+await app.register(rutasMetricas);
 
 const cerrar = async () => {
   outbox.detener();

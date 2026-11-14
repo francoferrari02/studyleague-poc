@@ -17,3 +17,7 @@ export function claveRanking(cursoId: string, semana = semanaIso()): string {
 export function claveProcesado(eventId: string): string {
   return `procesado:ranking:${eventId}`;
 }
+
+/** Lista de Redis con las últimas latencias partida → ranking (ms), para el p95 del white paper. */
+export const CLAVE_LATENCIA_RANKING = "metricas:latencia_ranking";
+export const MUESTRAS_LATENCIA = 1000;

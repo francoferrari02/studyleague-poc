@@ -9,7 +9,9 @@
  */
 import { Redis, type Result } from "ioredis";
 import {
+  CLAVE_LATENCIA_RANKING,
   CONSUMER_GROUPS,
+  MUESTRAS_LATENCIA,
   TOPICS,
   claveProcesado,
   claveRanking,
@@ -80,7 +82,12 @@ await crearConsumidor({
       latencia_ms: latenciaMs,
     });
 
-    // TODO(PoC): guardar latencia_ms en Redis (por ejemplo una lista acotada) para calcular el p95.
+    // Últimas 1.000 latencias, para GET /metricas (p50, p95, máximo).
+    await redis
+      .multi()
+      .lpush(CLAVE_LATENCIA_RANKING, latenciaMs)
+      .ltrim(CLAVE_LATENCIA_RANKING, 0, MUESTRAS_LATENCIA - 1)
+      .exec();
   },
 });
 
