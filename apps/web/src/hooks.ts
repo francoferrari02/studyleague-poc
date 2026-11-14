@@ -14,8 +14,9 @@ export function useDatos<T>(ruta: string, intervalo = 0) {
     let controlador: AbortController | null = null;
     const cargar = async () => {
       controlador?.abort(); controlador = new AbortController();
-      try { const d = await api<T>(ruta, { signal: controlador.signal }); if (activa) { setDatos(d); setError(""); } }
-      catch (e) { if (activa && !controlador.signal.aborted) setError((e as Error).message); }
+      const peticion = controlador;
+      try { const d = await api<T>(ruta, { signal: peticion.signal }); if (activa) { setDatos(d); setError(""); } }
+      catch (e) { if (activa && !peticion.signal.aborted) setError((e as Error).message); }
       if (activa && intervalo) timer = setTimeout(cargar, intervalo);
     };
     const foco = () => { clearTimeout(timer); void cargar(); };

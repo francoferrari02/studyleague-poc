@@ -16,8 +16,12 @@ for intento in {1..30}; do
   sleep 1
 done
 docker compose run --rm -T kafka-init
+docker compose exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < infra/postgres/init/003_demo_cursos.sql
 docker compose exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < scripts/demo-reset.sql
 # Redis es exclusivo de esta PoC: ranking, rachas, idempotencia y métricas.
 docker compose exec -T redis redis-cli FLUSHDB
 npm run seed:ranking
+docker compose start "${servicios[@]}" >/dev/null
+trap - EXIT
+docker compose exec -T api node --input-type=module -e 'for(let i=0;;i++){try{const r=await fetch("http://localhost:3000/salud");if(r.ok)break}catch{}if(i===50)throw Error("La API no quedó lista tras el reset");await new Promise(r=>setTimeout(r,200))}'
 echo 'Demo lista: Tomás 7º; Mitosis 6/18 con aviso; Organelas 14/30 sin aviso.'

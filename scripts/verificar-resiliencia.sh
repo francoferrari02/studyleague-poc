@@ -9,6 +9,7 @@ docker compose exec -T api node --input-type=module <<'JS'
 const base='http://localhost:3000';
 const pedir=async(r,op={})=>{const res=await fetch(base+r,op);if(!res.ok)throw Error(`${r}: ${res.status}`);return res.json()};
 for(let i=0;;i++){try{await pedir('/health');break}catch(e){if(i===30)throw e;await new Promise(r=>setTimeout(r,200))}}
+await pedir('/salud');
 const {token}=await pedir('/auth/alumno',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({usuario:'tomas',clave:'alumno123'})});
 const headers={'content-type':'application/json',authorization:`Bearer ${token}`};
 const {preguntas}=await pedir('/cursos/bio-2b/partida-nueva?minijuego=trivia',{headers});

@@ -29,7 +29,7 @@ export const MENSAJES = {
 
 function esRutaPublica(url: string): boolean {
   const ruta = url.split("?")[0];
-  return ruta === "/health" || ruta === "/docs" || ruta.startsWith("/docs/") || ruta.startsWith("/auth/");
+  return ruta === "/health" || ruta === "/salud" || ruta === "/docs" || ruta.startsWith("/docs/") || ruta.startsWith("/auth/");
 }
 
 /** Registra @fastify/jwt y el hook global. Se llama sobre la instancia raíz para que aplique a todas las rutas. */

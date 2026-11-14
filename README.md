@@ -48,8 +48,9 @@ Los datos de ejemplo (`infra/postgres/init`) solo se cargan con el volumen vací
 | Alumno (Tomás R., `alu-01`) | `tomas` | `alumno123` |
 | Otros 29 alumnos de Biología · 2.º B | `alu-02` … `alu-30` | `alumno123` |
 | Docente (Prof. Laura Gómez) | `laura.gomez` | `docente123` |
+| Otro docente de demo (Historia y Matemática) | `docente.demo` | `docente123` |
 
-Todas las rutas piden `Authorization: Bearer <token>` salvo `/health`, `/docs` y `/auth/*`. El token se obtiene con `POST /auth/alumno` o `POST /auth/docente` (`{ "usuario", "clave" }`) y vence en 12 h. En Swagger, pegalo en el botón **Authorize**.
+Todas las rutas piden `Authorization: Bearer <token>` salvo `/health`, `/salud`, `/docs` y `/auth/*`. El token se obtiene con `POST /auth/login`, `POST /auth/alumno` o `POST /auth/docente` (`{ "usuario", "clave" }`) y vence en 12 h. En Swagger, pegalo en el botón **Authorize**.
 
 | Qué | Dirección |
 | --- | --- |
@@ -116,10 +117,55 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 ## Estado
 
-Esqueleto inicial. Los puntos a implementar están marcados con `TODO(PoC)` en el código (`grep -rn "TODO(PoC)" services apps`).
+Fases 1 y 2 implementadas: Trivia, puesto en vivo, ranking semanal e ingreso/cursos/analítica/notificaciones del docente. Las rutas del resto de minijuegos, alta de cursos, carga de contenido y progreso conservan sus marcadores; no forman parte de esta fase.
 
 ## Antes de cada demo/ensayo
 
 Con el stack iniciado, ejecutá `npm run demo:reset`. Es un reset **exclusivo de esta PoC**: borra todas las partidas, outbox, notificaciones, proyecciones, ranking, rachas y métricas; conserva usuarios, cursos y preguntas. Detiene los productores/consumidores y recrea los tres tópicos para que no se reproduzcan eventos viejos. Se puede repetir. Requiere Node 22, npm, Docker Compose y `rg`.
 
 Mitosis arranca en 6/18 (33 %, frente al 34 % ilustrativo del mockup), con alerta enviada y un aviso existente. Organelas arranca en 14/30 (47 %), sin aviso: con seis respuestas incorrectas más cae a 39 %. Los demás contadores son 21/38, 32/47 y 42/51 (55 %, 68 %, 82 %). El reset usa Bash + SQL para reutilizar Compose y el seed sin sumar dependencias.
+
+El seed adicional `003_demo_cursos.sql` se ejecuta con volumen vacío y también desde `demo-reset` para bases existentes. Laura tiene Biología 2.º B, Biología 3.º A y Ciencias Naturales 1.º C. El docente de demo tiene Historia y Matemática 2.º B, con Tomás inscripto. Los cuatro cursos nuevos no tienen preguntas ni minijuegos habilitados, actividad histórica ni proyecciones de analítica/ranking; sus KPIs son cero y en A3 las materias sin juegos aparecen como Próximamente. No se inventaron trivias ni actividad para esos cursos.
+
+## Frontend de Fase 2
+
+Abrí http://localhost:5173/alumno/ingreso para Tomás y http://localhost:5173/docente/ingreso para Laura. El ingreso redirige según rol. Las pantallas usan fuentes locales (no Google Fonts/CDN) y `/api` mediante nginx; Vite usa el mismo proxy durante desarrollo. La URL se configura con `VITE_API_URL` al construir.
+
+El acceso rápido de Tomás está apagado por defecto. Para habilitarlo deliberadamente:
+
+```bash
+docker compose build --build-arg VITE_DEMO=true web
+docker compose up -d --no-deps web
+# Volver al valor por defecto:
+docker compose build --build-arg VITE_DEMO=false web
+docker compose up -d --no-deps web
+```
+
+Para cambiar la API en la web: `docker compose build --build-arg VITE_API_URL=https://tu-api.example web`. Normalmente debe conservarse `/api`. En desarrollo: `VITE_DEMO=true npm run dev -w apps/web`.
+
+Para la alerta en vivo, después de `npm run demo:reset`, abrí las notificaciones de Laura y ejecutá:
+
+```bash
+docker compose run --rm simulador --alumnos 4 --segundos 0 --bajo-dominio organelas
+```
+
+El modo dirigido fuerza errores en Organelas; mantiene Mitosis baja y el resto de conceptos saludables para evitar alertas incidentales. Sin `--bajo-dominio`, el simulador conserva las probabilidades originales. Con dos preguntas de Organelas por trivia, el umbral se cruza durante la tercera partida (14/36 < 40 %); la cuarta mantiene la condición. No cambia contratos de eventos ni lógica de los consumidores.
+
+Verificación reproducible (Node 22, Chrome instalado, `npm ci`; no instala navegadores):
+
+```bash
+npm run build
+docker compose config -q
+bash scripts/verificar-seed.sh
+bash scripts/verificar-resiliencia.sh
+bash scripts/verificar-fase1.sh  # borra volúmenes: entorno exclusivo de PoC
+npm run demo:reset
+node scripts/verificar-api-fase2.mjs
+mkdir -p .verificacion/tmp
+TMPDIR="$PWD/.verificacion/tmp" node scripts/verificar-fase2.mjs
+TMPDIR="$PWD/.verificacion/tmp" node scripts/verificar-alerta-fase2.mjs
+TMPDIR="$PWD/.verificacion/tmp" node scripts/verificar-estados-fase2.mjs
+npm run demo:reset  # dejar la demo lista después de las pruebas
+```
+
+Las pruebas de navegador usan Chrome en `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`; el recorrido principal admite `CHROME_PATH` y `WEB_URL` para otros entornos. Ejecutá las pruebas en secuencia: modifican datos de la demo. Perfiles, temporales y capturas quedan dentro de `.verificacion/`, ignorada por Git. Las mediciones están en `docs/mediciones-fase2.json` y el informe completo en `docs/informe-fase2.md`.

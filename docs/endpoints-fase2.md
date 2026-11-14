@@ -23,3 +23,22 @@ No se cambian eventos. Solo lecturas de PostgreSQL/Redis y corrección ya existe
 B2 deja de enviar `respuesta_correcta` y `explicacion` para todos los minijuegos; agrega `concepto_nombre`. El simulador lee las soluciones directamente desde PostgreSQL con credenciales internas de Compose; `verificar-fase1.sh` también usa SQL interno. Ninguna ruta pública o autenticada de listado devuelve soluciones. Los tipos de eventos no contienen respuestas correctas y no cambian.
 
 `POST /partidas` acepta ahora `partida_id` UUID opcional, generado por el navegador, para reintentos seguros. Una inserción concurrente con el mismo UUID guarda una sola partida/evento; el mismo alumno/curso/minijuego recibe el resultado original (primera escritura gana); otro dueño o curso recibe 409. Siempre vuelve a corregir las respuestas enviadas en el servidor, sin confiar en el feedback previo. Conserva el contrato sin UUID para los clientes anteriores.
+
+## Otros endpoints creados en esta fase
+
+- `POST /auth/login`: `{usuario, clave, rol?}`; devuelve `{token, rol, id, nombre}`. Conserva `/auth/alumno` y `/auth/docente`. El ingreso docente admite usuario o email institucional.
+- `GET /salud`: alias público de `/health`; comprueba PostgreSQL y Redis sin consultar Kafka.
+- `GET /alumnos/yo/inicio`: JWT alumno; nombre visible, cursos propios con días/minijuegos, próxima fecha, cantidad de inscriptos y racha/puntos/puesto de Redis. La identidad sale del JWT.
+- `GET /docentes/yo/cursos`: JWT docente; perfil/escuela y solo sus cursos, inscriptos, participación semanal y conceptos bajos. Laura y el docente de demo reciben conjuntos disjuntos.
+- `GET /cursos/:cursoId/conceptos/:conceptoId`: JWT docente dueño; contadores agregados, alumnos distintos como cantidad y distribución de opciones por pregunta. No devuelve alumnos individuales. La respuesta correcta en este detalle es exclusiva del docente dueño, para interpretar el gráfico.
+
+## Endpoints ampliados
+
+- `GET /cursos/:cursoId/ranking`: conserva puesto/id/puntos y agrega `nombre_visible`, nombre del curso y días hasta el reinicio semanal. Los ids solo sirven para identificar la fila propia; nunca se renderizan.
+- `GET /cursos/:cursoId/analitica`: conserva `conceptos` y agrega `curso` y `kpis`. Devuelve también conceptos sin actividad como cero. `porcentaje_aciertos` es una proporción real, sin redondeo intermedio; la UI redondea el porcentaje desde aciertos/respuestas.
+- `GET /cursos/:cursoId/partida-nueva`: sin soluciones, con `concepto_nombre`; verifica que el minijuego esté habilitado.
+- `POST /partidas`: UUID opcional para idempotencia de envío final (ver arriba).
+
+Los avisos y su marca de lectura reutilizan rutas existentes. D8 marca el aviso leído al abrir su detalle; consulta cada 5 s desde el layout, muestra contador y toast solo para avisos nuevos después de la carga inicial. D6 y D7 también refrescan cada 5 s.
+
+La semana y el próximo día se calculan en UTC, igual que el ranking/consumidores existentes. No se agrega una noción nueva de calendario del curso en esta fase.

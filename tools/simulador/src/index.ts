@@ -67,7 +67,11 @@ async function pedir<T>(ruta: string, opciones: { token?: string; cuerpo?: unkno
 
 /** Elige la opción correcta con la probabilidad del concepto; si no, una incorrecta al azar. */
 function responder(p: Pregunta) {
-  const probAcierto = p.concepto_id === BAJO_DOMINIO ? 0 : (CONCEPTOS[p.concepto_id] ?? 0.5);
+  // Modo dirigido: el concepto elegido falla siempre. El resto no cruza nuevos
+  // umbrales: Mitosis sigue baja y los conceptos inicialmente saludables aciertan.
+  const probAcierto = BAJO_DOMINIO
+    ? (p.concepto_id === BAJO_DOMINIO || (CONCEPTOS[p.concepto_id] ?? 1) < 0.4 ? 0 : 1)
+    : (CONCEPTOS[p.concepto_id] ?? 0.5);
   const incorrectas = p.opciones.filter((o) => o !== correctaPorId.get(p.pregunta_id));
   const acierta = Math.random() < probAcierto || incorrectas.length === 0;
   return {

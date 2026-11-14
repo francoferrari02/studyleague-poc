@@ -3,11 +3,14 @@ const BASE = (import.meta.env.VITE_API_URL ?? "/api").replace(/\/$/, "");
 export type Rol = "alumno" | "docente";
 export interface Sesion { token: string; rol: Rol; id: string; nombre: string }
 const CLAVE = "studyleague.sesion";
+export function vencimiento(token: string): number {
+  try { const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); return typeof payload.exp === "number" ? payload.exp*1000 : 0; } catch { return 0; }
+}
 let actual: Sesion | null = leerSesion();
 function leerSesion(): Sesion | null {
   try {
     const s = JSON.parse(localStorage.getItem(CLAVE) ?? "null");
-    return s && typeof s.token === "string" && s.token && ["alumno", "docente"].includes(s.rol) && typeof s.id === "string" && typeof s.nombre === "string" ? s : null;
+    return s && typeof s.token === "string" && vencimiento(s.token)>Date.now() && ["alumno", "docente"].includes(s.rol) && typeof s.id === "string" && typeof s.nombre === "string" ? s : null;
   } catch { return null; }
 }
 export const obtenerSesion = () => actual;
@@ -35,7 +38,7 @@ export async function api<T>(ruta: string, opciones: { metodo?: string; cuerpo?:
   }
   const datos = await res.json().catch(() => null);
   if (res.status === 401 && !opciones.publica) guardarSesion(null);
-  if (!res.ok) throw new ErrorApi(res.status, datos?.error ?? "No pudimos completar la solicitud. Intentá de nuevo.");
+  if (!res.ok) throw new ErrorApi(res.status, datos?.error ?? (res.status >= 500 ? "StudyLeague no está disponible en este momento. Intentá de nuevo en unos segundos." : "No pudimos completar la solicitud. Intentá de nuevo."));
   return datos as T;
 }
 export interface FilaRanking { puesto: number; alumno_id: string; nombre_visible: string; puntos: number }
