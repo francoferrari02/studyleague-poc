@@ -1,0 +1,10 @@
+import { chromium } from '@playwright/test';
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
+await mkdir('.verificacion/tmp', { recursive: true });
+const browser = await chromium.launchPersistentContext(resolve('.verificacion/perfil-componentes'), { executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true, viewport: { width: 390, height: 844 } });
+const page = await browser.newPage();
+await page.goto('http://localhost:5174/componentes');
+await page.screenshot({ path: '.verificacion/componentes.png', fullPage: true });
+console.log(await page.locator('button').count(), 'botones; Fredoka cargada:', await page.evaluate(()=>document.fonts.check('600 28px Fredoka')));
+await browser.close();

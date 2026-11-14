@@ -1,3 +1,5 @@
+import { Protegida } from "./auth";
+import { Componentes } from "./components/ui";
 import { Link, Route, Routes } from "react-router-dom";
 import { PANTALLAS } from "./pantallas";
 import { LayoutAlumno } from "./layouts/LayoutAlumno";
@@ -28,16 +30,18 @@ export function App() {
   return (
     <Routes>
       <Route path="/" element={<Portada />} />
-      <Route element={<LayoutAlumno />}>
+      <Route element={<Protegida rol="alumno" />}><Route element={<LayoutAlumno />}>
         {PANTALLAS.filter((p) => p.rol === "alumno").map((p) => (
           <Route key={p.ruta} path={p.ruta} element={<Marcador pantalla={p} />} />
         ))}
       </Route>
-      <Route element={<LayoutDocente />}>
+      </Route><Route element={<Protegida rol="docente" />}><Route element={<LayoutDocente />}>
         {PANTALLAS.filter((p) => p.rol === "docente").map((p) => (
           <Route key={p.ruta} path={p.ruta} element={<Marcador pantalla={p} />} />
         ))}
       </Route>
+      </Route>
+      <Route path="/componentes" element={<Componentes />} />
     </Routes>
   );
 }

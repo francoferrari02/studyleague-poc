@@ -2,7 +2,7 @@
   "name": "studyleague-poc",
   "private": true,
   "version": "0.1.0",
-  "description": "Prueba de concepto de StudyLeague: arquitectura orientada a eventos con Apache Kafka (TP Integrador Final, Ingenier\u00eda de Software II).",
+  "description": "Prueba de concepto de StudyLeague: arquitectura orientada a eventos con Apache Kafka (TP Integrador Final, Ingeniería de Software II).",
   "workspaces": [
     "packages/*",
     "services/*",
@@ -24,6 +24,7 @@
     "node": ">=22"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.1",
     "@types/node": "^22.10.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"

@@ -3,3 +3,7 @@
 .git
 .env
 docs
+
+.tmp-mockups
+.npm-cache
+.verificacion
