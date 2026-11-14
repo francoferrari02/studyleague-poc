@@ -6,13 +6,15 @@ Los tipos están en `packages/shared/src/events.ts`. Los eventos llevan solo ide
 
 | Tópico | Particiones | Clave | Productor | Consumidores (grupos) |
 | --- | --- | --- | --- | --- |
-| `partida.finalizada` | `PARTIDA_PARTICIONES` (3) | `curso_id` | api | ranking, rachas, analitica |
+| `partida.finalizada` | `PARTIDA_PARTICIONES` (3) | `curso_id` | api (vía outbox) | ranking, rachas, analitica |
 | `concepto.bajo_dominio` | 1 | `curso_id` | analitica-consumer | notificaciones |
 | `partida.finalizada.dlq` | 1 | la del mensaje original | consumidores | (inspección manual en Kafka UI) |
 
 Retención: `RETENCION_HORAS` (168 h = 7 días). La auto-creación de tópicos está desactivada; los crea `kafka-init`.
 
 ## partida.finalizada
+
+La arma la API después de corregir las respuestas en el servidor (`correcta` lo decide la API, no el cliente). Se guarda en la tabla `outbox` en la misma transacción que la partida y la publica el publicador del outbox. Lo que respondió el alumno (`respuesta_dada`) queda en PostgreSQL y no viaja en el evento.
 
 ```json
 {
@@ -52,5 +54,6 @@ Se publica cuando un concepto suma 10 respuestas o más (`BAJO_DOMINIO_MIN_RESPU
 ## Garantías
 
 - **Orden:** solo dentro de una partición. Como la clave es `curso_id`, las partidas de un curso se procesan en orden.
+- **Outbox:** si la API se cae entre publicar y marcar `publicado_en`, el evento se vuelve a publicar con el mismo `event_id`; los consumidores lo descartan.
 - **Entrega al menos una vez:** un evento puede llegar repetido. Cada consumidor guarda los `event_id` ya procesados (Redis con `SET NX` o la tabla `eventos_procesados`) y descarta los repetidos.
 - **Cambios de contrato:** agregar campos opcionales no rompe a nadie; un cambio incompatible sube `version`.

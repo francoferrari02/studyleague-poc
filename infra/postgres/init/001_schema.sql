@@ -62,6 +62,7 @@ CREATE TABLE preguntas (
 
 CREATE TABLE partidas (
   id            UUID PRIMARY KEY,
+  event_id      UUID NOT NULL UNIQUE,           -- evento partida.finalizada de esta partida (outbox, B4)
   curso_id      TEXT NOT NULL REFERENCES cursos(id),
   alumno_id     TEXT NOT NULL REFERENCES alumnos(id),
   minijuego     TEXT NOT NULL,
@@ -72,8 +73,9 @@ CREATE TABLE partidas (
 CREATE TABLE respuestas (
   partida_id    UUID NOT NULL REFERENCES partidas(id),
   pregunta_id   TEXT NOT NULL REFERENCES preguntas(id),
-  correcta      BOOLEAN NOT NULL,
+  correcta      BOOLEAN NOT NULL,              -- lo decide la API, no el cliente
   tiempo_ms     INTEGER NOT NULL,
+  respuesta_dada JSONB,                        -- lo que respondió el alumno (para el detalle D7)
   PRIMARY KEY (partida_id, pregunta_id)
 );
 

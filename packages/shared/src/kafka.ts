@@ -12,9 +12,18 @@ function cliente(clientId: string) {
   return new Kafka({ kafkaJS: { clientId, brokers: brokers(), logLevel: logLevel.WARN } });
 }
 
+/**
+ * Tiempo máximo que un envío espera a Kafka antes de fallar. Sin esto librdkafka espera
+ * 5 minutos; con 10 s el outbox de la API reintenta pronto si Kafka está caído.
+ */
+const TIMEOUT_ENVIO_MS = 10_000;
+
 /** Productor idempotente: el broker descarta los reenvíos del propio productor. */
 export async function crearProductor(clientId: string) {
-  const producer = cliente(clientId).producer({ kafkaJS: { idempotent: true, acks: -1 } });
+  const producer = cliente(clientId).producer({
+    kafkaJS: { idempotent: true, acks: -1 },
+    "message.timeout.ms": TIMEOUT_ENVIO_MS,
+  });
   await producer.connect();
 
   return {
@@ -55,7 +64,9 @@ export async function crearConsumidor(opciones: {
   alRecibir: (mensaje: MensajeRecibido) => Promise<void>;
 }) {
   const consumer = cliente(opciones.clientId).consumer({
-    kafkaJS: { groupId: opciones.groupId, fromBeginning: true },
+    // Sesión de 10 s (en lugar de 30 s): si el broker se reinicia, el consumidor detecta
+    // antes que perdió el grupo y vuelve a unirse, así el ranking se pone al día en segundos.
+    kafkaJS: { groupId: opciones.groupId, fromBeginning: true, sessionTimeout: 10_000, heartbeatInterval: 3_000 },
   });
   await consumer.connect();
   await consumer.subscribe({ topics: opciones.topics });

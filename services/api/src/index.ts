@@ -6,6 +6,7 @@ import { crearProductor } from "@studyleague/shared";
 import { config } from "./config.js";
 import { configurarAutenticacion } from "./auth.js";
 import { rutasAuth } from "./routes/auth.js";
+import { iniciarPublicadorOutbox } from "./outbox.js";
 import { rutasPartidas } from "./routes/partidas.js";
 import { rutasCursos } from "./routes/cursos.js";
 import { rutasSalud } from "./routes/salud.js";
@@ -33,13 +34,15 @@ await app.register(swaggerUi, { routePrefix: "/docs" });
 await configurarAutenticacion(app);
 
 const productor = await crearProductor("api");
+const outbox = iniciarPublicadorOutbox(productor, app.log);
 
 await app.register(rutasSalud);
 await app.register(rutasAuth);
-await app.register(rutasPartidas, { productor });
+await app.register(rutasPartidas, { outbox });
 await app.register(rutasCursos);
 
 const cerrar = async () => {
+  outbox.detener();
   await app.close();
   await productor.desconectar();
   process.exit(0);
