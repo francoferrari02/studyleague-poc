@@ -1,3 +1,4 @@
+import { Ranking } from "./pages/alumno/Ranking";
 import { Resultado } from "./pages/alumno/Resultado";
 import { AntesDeJugar, Trivia } from "./pages/alumno/Trivia";
 import { Inicio } from "./pages/alumno/Inicio";
@@ -41,7 +42,8 @@ export function App() {
         <Route path="/alumno/jugar" element={<AntesDeJugar />} />
         <Route path="/alumno/partida" element={<Trivia />} />
         <Route path="/alumno/resultado" element={<Resultado />} />
-        {PANTALLAS.filter((p) => p.rol === "alumno" && !p.ruta.endsWith("ingreso") && !["/alumno", "/alumno/jugar", "/alumno/partida", "/alumno/resultado"].includes(p.ruta)).map((p) => (
+        <Route path="/alumno/ranking" element={<Ranking />} />
+        {PANTALLAS.filter((p) => p.rol === "alumno" && !p.ruta.endsWith("ingreso") && !["/alumno", "/alumno/jugar", "/alumno/partida", "/alumno/resultado", "/alumno/ranking"].includes(p.ruta)).map((p) => (
           <Route key={p.ruta} path={p.ruta} element={<Marcador pantalla={p} />} />
         ))}
       </Route>
