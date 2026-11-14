@@ -4,6 +4,7 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import { config } from "./config.js";
 import { configurarAutenticacion } from "./auth.js";
+import { rutasAlumnos } from "./routes/alumnos.js";
 import { rutasAuth } from "./routes/auth.js";
 import { iniciarPublicadorOutbox } from "./outbox.js";
 import { rutasPartidas } from "./routes/partidas.js";
@@ -38,6 +39,7 @@ const outbox = iniciarPublicadorOutbox(app.log);
 
 await app.register(rutasSalud);
 await app.register(rutasAuth);
+await app.register(rutasAlumnos);
 await app.register(rutasPartidas, { outbox });
 await app.register(rutasCursos);
 await app.register(rutasDocentes);

@@ -1,3 +1,4 @@
+import { Inicio } from "./pages/alumno/Inicio";
 import { Ingreso } from "./pages-login";
 import { Protegida } from "./auth";
 import { Componentes } from "./components/ui";
@@ -34,7 +35,8 @@ export function App() {
       <Route path="/alumno/ingreso" element={<Ingreso />} />
       <Route path="/docente/ingreso" element={<Ingreso docente />} />
       <Route element={<Protegida rol="alumno" />}><Route element={<LayoutAlumno />}>
-        {PANTALLAS.filter((p) => p.rol === "alumno" && !p.ruta.endsWith("ingreso")).map((p) => (
+        <Route path="/alumno" element={<Inicio />} />
+        {PANTALLAS.filter((p) => p.rol === "alumno" && !p.ruta.endsWith("ingreso") && p.ruta !== "/alumno").map((p) => (
           <Route key={p.ruta} path={p.ruta} element={<Marcador pantalla={p} />} />
         ))}
       </Route>
