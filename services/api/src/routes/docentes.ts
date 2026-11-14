@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../clients.js";
 import { proximoDia } from "./alumnos.js";
-import { MENSAJES, exigirRol } from "../auth.js";
+import { MENSAJES, exigirCurso, exigirRol } from "../auth.js";
 
 export async function rutasDocentes(app: FastifyInstance) {
   app.get("/docentes/yo/cursos", { schema: { summary: "Perfil y cursos propios con participación semanal (D2)", tags: ["docente"] }, preHandler: exigirRol("docente") }, async request => {
@@ -14,6 +14,20 @@ export async function rutasDocentes(app: FastifyInstance) {
         FROM cursos c WHERE c.docente_id=$1 ORDER BY c.id`, [request.user.id]),
     ]);
     return { docente: perfil[0], cursos: cursos.map(c=>({...c,...proximoDia(c.dias_juego)})) };
+  });
+  app.get<{ Params: { cursoId: string; conceptoId: string } }>("/cursos/:cursoId/conceptos/:conceptoId", {
+    schema: { summary: "Detalle agregado de concepto y distribución de opciones (D7)", tags: ["docente"], params: { type: "object", required: ["cursoId", "conceptoId"], properties: { cursoId: { type: "string", minLength: 1 }, conceptoId: { type: "string", minLength: 1 } } } }, preHandler: exigirCurso("docente"),
+  }, async (request, reply) => {
+    const {cursoId,conceptoId}=request.params;
+    const { rows: conceptos }=await db.query(`SELECT c.id AS concepto_id,c.nombre,curso.nombre AS curso_nombre,coalesce(a.respuestas,0) AS respuestas,coalesce(a.aciertos,0) AS aciertos,coalesce(a.alerta_enviada,false) AS alerta_enviada
+      FROM conceptos c JOIN cursos curso ON curso.id=c.curso_id LEFT JOIN analitica_concepto a ON a.curso_id=c.curso_id AND a.concepto_id=c.id WHERE c.id=$1 AND c.curso_id=$2`,[conceptoId,cursoId]);
+    if (!conceptos[0]) return reply.code(404).send({error:"No encontramos ese concepto en este curso."});
+    const [{ rows: alumnos },{rows: preguntas},{rows: distribucion}]=await Promise.all([
+      db.query(`SELECT count(DISTINCT p.alumno_id)::int AS cantidad FROM respuestas r JOIN partidas p ON p.id=r.partida_id JOIN preguntas q ON q.id=r.pregunta_id WHERE p.curso_id=$1 AND q.concepto_id=$2`,[cursoId,conceptoId]),
+      db.query(`SELECT q.id,q.enunciado,q.opciones,q.respuesta AS respuesta_correcta,q.explicacion,count(r.pregunta_id)::int AS respuestas,count(*) FILTER(WHERE r.correcta=false)::int AS errores FROM preguntas q LEFT JOIN (respuestas r JOIN partidas p ON p.id=r.partida_id AND p.curso_id=$1) ON r.pregunta_id=q.id WHERE q.concepto_id=$2 AND q.minijuego='trivia' GROUP BY q.id ORDER BY errores DESC,q.id`,[cursoId,conceptoId]),
+      db.query(`SELECT r.pregunta_id,r.respuesta_dada,count(*)::int AS cantidad FROM respuestas r JOIN partidas p ON p.id=r.partida_id JOIN preguntas q ON q.id=r.pregunta_id WHERE p.curso_id=$1 AND q.concepto_id=$2 GROUP BY r.pregunta_id,r.respuesta_dada`,[cursoId,conceptoId]),
+    ]);
+    return { ...conceptos[0], alumnos_distintos: alumnos[0].cantidad, preguntas: preguntas.map(q=>({...q,distribucion:distribucion.filter(d=>d.pregunta_id===q.id).map(({respuesta_dada,cantidad})=>({respuesta_dada,cantidad}))})) };
   });
   app.get(
     "/docentes/yo/notificaciones",
