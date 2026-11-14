@@ -167,6 +167,7 @@ services:
     entrypoint: ["node", "dist/index.js"]
     environment:
       API_URL: http://api:3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-studyleague}:${POSTGRES_PASSWORD:-studyleague}@postgres:5432/${POSTGRES_DB:-studyleague}
     depends_on:
       - api
 

@@ -43,3 +43,8 @@ La conexión del productor se crea dentro del publicador, cuando encuentra event
 Se reproduce con `bash scripts/verificar-resiliencia.sh`: detiene Kafka, reinicia API, prueba salud y login, guarda tres partidas pendientes y recupera Kafka. Antes del cambio, la espera de `crearProductor` anterior a `listen` impedía servir salud y login.
 
 El orden descrito aplica al publicador único de esta PoC. Varias instancias con `SKIP LOCKED` requieren serializar por curso para preservar ese orden entre publicadores.
+
+## Limitaciones conocidas
+
+- Un alumno autenticado puede consultar la corrección de preguntas sin haber jugado. La ruta stateless valida inscripción, curso y trivia habilitada, y limita consultas por alumno en memoria; no acredita una partida jugada.
+- Mitigación futura: sesión de partida en el servidor (partida iniciada, orden y tiempos de preguntas, revelación solo tras responder) o validación contra una respuesta ya registrada.

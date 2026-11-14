@@ -1,3 +1,4 @@
+import { AntesDeJugar, Trivia } from "./pages/alumno/Trivia";
 import { Inicio } from "./pages/alumno/Inicio";
 import { Ingreso } from "./pages-login";
 import { Protegida } from "./auth";
@@ -36,7 +37,9 @@ export function App() {
       <Route path="/docente/ingreso" element={<Ingreso docente />} />
       <Route element={<Protegida rol="alumno" />}><Route element={<LayoutAlumno />}>
         <Route path="/alumno" element={<Inicio />} />
-        {PANTALLAS.filter((p) => p.rol === "alumno" && !p.ruta.endsWith("ingreso") && p.ruta !== "/alumno").map((p) => (
+        <Route path="/alumno/jugar" element={<AntesDeJugar />} />
+        <Route path="/alumno/partida" element={<Trivia />} />
+        {PANTALLAS.filter((p) => p.rol === "alumno" && !p.ruta.endsWith("ingreso") && !["/alumno", "/alumno/jugar", "/alumno/partida"].includes(p.ruta)).map((p) => (
           <Route key={p.ruta} path={p.ruta} element={<Marcador pantalla={p} />} />
         ))}
       </Route>

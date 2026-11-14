@@ -23,6 +23,7 @@ interface RespuestaDada {
 }
 
 interface CuerpoPartida {
+  partida_id?: string;
   curso_id: string;
   minijuego: Minijuego;
   respuestas: RespuestaDada[];
@@ -48,8 +49,7 @@ export async function rutasPartidas(app: FastifyInstance, opts: { outbox: Public
       schema: {
         summary: "Preguntas para una partida nueva",
         description:
-          "Hasta 10 preguntas del curso para ese minijuego, mezcladas al azar. Incluye respuesta_correcta y explicacion " +
-          "para mostrar el resultado al instante (A6, A7); la corrección que vale es la del servidor en POST /partidas.",
+          "Hasta 10 preguntas sin respuestas correctas ni explicaciones. El feedback se obtiene al responder mediante POST /cursos/:cursoId/preguntas/:preguntaId/correccion.",
         tags: ["partidas"],
         querystring: {
           type: "object",
@@ -64,10 +64,11 @@ export async function rutasPartidas(app: FastifyInstance, opts: { outbox: Public
       const { minijuego } = request.query;
       const { rows } = await db.query(
         `SELECT p.id AS pregunta_id, p.concepto_id, p.enunciado, p.opciones,
-                p.respuesta AS respuesta_correcta, p.explicacion
+                c.nombre AS concepto_nombre
            FROM preguntas p
            JOIN conceptos c ON c.id = p.concepto_id
-          WHERE c.curso_id = $1 AND p.minijuego = $2
+           JOIN cursos curso ON curso.id = c.curso_id
+          WHERE c.curso_id = $1 AND p.minijuego = $2 AND $2 = ANY(curso.minijuegos)
           ORDER BY random()
           LIMIT $3`,
         [cursoId, minijuego, PREGUNTAS_POR_PARTIDA],
@@ -75,6 +76,32 @@ export async function rutasPartidas(app: FastifyInstance, opts: { outbox: Public
       return { curso_id: cursoId, minijuego, preguntas: rows };
     },
   );
+
+  const consultas = new Map<string, { desde: number; cantidad: number }>();
+  const limpiar = setInterval(() => { for (const [id, c] of consultas) if (Date.now()-c.desde>=60_000) consultas.delete(id); }, 60_000);
+  limpiar.unref();
+  app.addHook("onClose", async () => clearInterval(limpiar));
+  app.post<{ Params: { cursoId: string; preguntaId: string }; Body: { respuesta_dada: string | null } }>(
+    "/cursos/:cursoId/preguntas/:preguntaId/correccion", {
+      schema: {
+        summary: "Feedback stateless de una pregunta de trivia (A6/A7)", tags: ["partidas"],
+        description: "No registra respuestas, puntos ni eventos. Solo para un alumno inscripto con trivia habilitada. Máximo 60 consultas por minuto y alumno en esta instancia; responde 429 y Retry-After al excederlo.",
+        params: { type: "object", required: ["cursoId", "preguntaId"], properties: { cursoId: { type: "string", minLength: 1 }, preguntaId: { type: "string", minLength: 1 } } },
+        body: { type: "object", required: ["respuesta_dada"], additionalProperties: false, properties: { respuesta_dada: { anyOf: [{ type: "string", maxLength: 1000 }, { type: "null" }] } } },
+        response: { 200: { type: "object", required: ["correcta", "respuesta_correcta", "explicacion"], properties: { correcta: { type: "boolean" }, respuesta_correcta: { type: "string" }, explicacion: { type: "string" } } } },
+      }, preHandler: exigirCurso("alumno"),
+    }, async (request, reply) => {
+      const ahora = Date.now();
+      const anterior = consultas.get(request.user.id);
+      const contador = anterior && ahora-anterior.desde<60_000 ? anterior : { desde: ahora, cantidad: 0 };
+      consultas.set(request.user.id, contador);
+      if (++contador.cantidad > 60) return reply.header("Retry-After", Math.ceil((60_000-(ahora-contador.desde))/1000)).code(429).send({ error: "Hiciste muchas consultas. Esperá un minuto para seguir." });
+      const { rows } = await db.query<{ respuesta: string; explicacion: string }>(
+        `SELECT p.respuesta, p.explicacion FROM preguntas p JOIN conceptos c ON c.id=p.concepto_id JOIN cursos curso ON curso.id=c.curso_id
+         WHERE p.id=$1 AND c.curso_id=$2 AND p.minijuego='trivia' AND 'trivia'=ANY(curso.minijuegos)`, [request.params.preguntaId, request.params.cursoId]);
+      if (!rows[0]) return reply.code(404).send({ error: "No encontramos esa pregunta de trivia disponible." });
+      return { correcta: corregirRespuesta("trivia", rows[0].respuesta, request.body.respuesta_dada).correcta, respuesta_correcta: rows[0].respuesta, explicacion: rows[0].explicacion };
+    });
 
   app.post<{ Body: CuerpoPartida }>(
     "/partidas",
@@ -92,6 +119,7 @@ export async function rutasPartidas(app: FastifyInstance, opts: { outbox: Public
           type: "object",
           required: ["curso_id", "minijuego", "respuestas"],
           properties: {
+            partida_id: { type: "string", format: "uuid" },
             curso_id: { type: "string" },
             minijuego: { type: "string", enum: MINIJUEGOS },
             respuestas: {
@@ -162,7 +190,7 @@ export async function rutasPartidas(app: FastifyInstance, opts: { outbox: Public
         tipo: "partida.finalizada",
         version: 1,
         ocurrido_en: ocurridoEn.toISOString(),
-        partida_id: randomUUID(),
+        partida_id: request.body.partida_id ?? randomUUID(),
         curso_id,
         alumno_id,
         minijuego,
@@ -178,15 +206,24 @@ export async function rutasPartidas(app: FastifyInstance, opts: { outbox: Public
         request.log.warn({ err: error }, "no se pudo leer el puesto anterior en Redis");
       }
 
+      async function resultadoExistente() {
+        const { rows: existentes } = await db.query("SELECT * FROM partidas WHERE id=$1", [evento.partida_id]);
+        const existente = existentes[0];
+        if (!existente || existente.alumno_id !== alumno_id || existente.curso_id !== curso_id || existente.minijuego !== minijuego)
+          return reply.code(409).send({ error: "Ese identificador ya pertenece a otra partida." });
+        const { rows: correccion } = await db.query("SELECT r.pregunta_id,r.correcta,p.explicacion FROM respuestas r JOIN preguntas p ON p.id=r.pregunta_id WHERE r.partida_id=$1 ORDER BY r.pregunta_id", [existente.id]);
+        return reply.code(202).send({ partida_id: existente.id, event_id: existente.event_id, puntaje: existente.puntaje, aciertos: correccion.filter(r=>r.correcta).length, total: correccion.length, correccion });
+      }
       // Una sola transacción: partida + respuestas + evento en el outbox (sin doble escritura).
       const cliente = await db.connect();
       try {
         await cliente.query("BEGIN");
-        await cliente.query(
+        const insertada = await cliente.query(
           `INSERT INTO partidas (id, event_id, curso_id, alumno_id, minijuego, puntaje, finalizada_en)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT (id) DO NOTHING RETURNING id`,
           [evento.partida_id, evento.event_id, curso_id, alumno_id, minijuego, evento.puntaje, ocurridoEn],
         );
+        if (insertada.rowCount === 0) { await cliente.query("ROLLBACK"); return await resultadoExistente(); }
         await cliente.query(
           `INSERT INTO respuestas (partida_id, pregunta_id, correcta, tiempo_ms, respuesta_dada)
            SELECT $1, * FROM unnest($2::text[], $3::boolean[], $4::integer[], $5::jsonb[])`,

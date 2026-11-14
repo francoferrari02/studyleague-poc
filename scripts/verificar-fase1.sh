@@ -78,10 +78,11 @@ codigo() { # codigo <token|-> <método> <ruta>
 }
 # Juega una trivia respondiendo todo bien; imprime la respuesta de POST /partidas con el código HTTP.
 jugar_trivia() {
-  local token=$1 cuerpo
+  local token=$1 cuerpo soluciones
+  soluciones=$(sql "SELECT coalesce(jsonb_object_agg(p.id,p.respuesta), '{}') FROM preguntas p JOIN conceptos c ON c.id=p.concepto_id WHERE c.curso_id='$CURSO' AND p.minijuego='trivia'")
   cuerpo=$(curl -s -H "authorization: Bearer $token" "$API/cursos/$CURSO/partida-nueva?minijuego=trivia" |
-    jq -c --arg c "$CURSO" '{curso_id: $c, minijuego: "trivia",
-      respuestas: [.preguntas[] | {pregunta_id, respuesta_dada: .respuesta_correcta, tiempo_ms: 5000}]}')
+    jq -c --argjson soluciones "$soluciones" --arg c "$CURSO" '{curso_id: $c, minijuego: "trivia",
+      respuestas: [.preguntas[] | {pregunta_id, respuesta_dada: $soluciones[.pregunta_id], tiempo_ms: 5000}]}')
   curl -s -w '\n%{http_code}' -X POST "$API/partidas" -H "authorization: Bearer $token" \
     -H 'content-type: application/json' -d "$cuerpo"
 }
@@ -119,8 +120,13 @@ const { token } = (await pedir("/auth/alumno", { method: "POST", headers: h, bod
 const H = { ...h, authorization: "Bearer " + token };
 const { preguntas } = (await pedir("/cursos/bio-2b/partida-nueva?minijuego=trivia", { headers: H })).body;
 // Responde todo bien salvo Mitosis, para comprobar también la corrección en el servidor.
+const { default: pg } = await import("pg");
+const db = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const { rows } = await db.query("SELECT id,respuesta FROM preguntas");
+await db.end();
+const soluciones = new Map(rows.map(p=>[p.id,p.respuesta]));
 const respuestas = preguntas.map((p) => ({ pregunta_id: p.pregunta_id, tiempo_ms: 6000,
-  respuesta_dada: p.concepto_id === "mitosis" ? p.opciones.find((o) => o !== p.respuesta_correcta) : p.respuesta_correcta }));
+  respuesta_dada: p.concepto_id === "mitosis" ? p.opciones.find((o) => o !== soluciones.get(p.pregunta_id)) : soluciones.get(p.pregunta_id) }));
 const t0 = performance.now();
 const post = await pedir("/partidas", { method: "POST", headers: H, body: JSON.stringify({ curso_id: "bio-2b", minijuego: "trivia", respuestas }) });
 const estados = []; let b4;

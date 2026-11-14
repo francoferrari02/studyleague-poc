@@ -15,6 +15,7 @@
  * la API corrige. Al final espera a que el ranking procese todas las partidas e imprime GET /metricas.
  * Sale con código 1 si alguna partida falló o no llegó al ranking.
  */
+import pg from "pg";
 import type { Minijuego } from "@studyleague/shared";
 
 const args = process.argv.slice(2);
@@ -46,7 +47,6 @@ interface Pregunta {
   pregunta_id: string;
   concepto_id: string;
   opciones: string[];
-  respuesta_correcta: unknown;
 }
 
 /** El usuario de alu-01 es "tomas"; el resto entra con su id. */
@@ -67,15 +67,22 @@ async function pedir<T>(ruta: string, opciones: { token?: string; cuerpo?: unkno
 
 /** Elige la opción correcta con la probabilidad del concepto; si no, una incorrecta al azar. */
 function responder(p: Pregunta) {
-  const probAcierto = p.concepto_id === BAJO_DOMINIO ? 0.1 : (CONCEPTOS[p.concepto_id] ?? 0.5);
-  const incorrectas = p.opciones.filter((o) => o !== p.respuesta_correcta);
+  const probAcierto = p.concepto_id === BAJO_DOMINIO ? 0 : (CONCEPTOS[p.concepto_id] ?? 0.5);
+  const incorrectas = p.opciones.filter((o) => o !== correctaPorId.get(p.pregunta_id));
   const acierta = Math.random() < probAcierto || incorrectas.length === 0;
   return {
     pregunta_id: p.pregunta_id,
-    respuesta_dada: acierta ? p.respuesta_correcta : incorrectas[Math.floor(Math.random() * incorrectas.length)],
+    respuesta_dada: acierta ? correctaPorId.get(p.pregunta_id) : incorrectas[Math.floor(Math.random() * incorrectas.length)],
     tiempo_ms: Math.round(3_000 + Math.random() * 15_000),
   };
 }
+
+// Las soluciones son datos internos de la herramienta; nunca se obtienen de B2.
+const db = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+const { rows: soluciones } = await db.query<{id: string; respuesta: unknown}>(
+  "SELECT p.id,p.respuesta FROM preguntas p JOIN conceptos c ON c.id=p.concepto_id WHERE c.curso_id=$1 AND p.minijuego=$2", [CURSO, MINIJUEGO]);
+await db.end();
+const correctaPorId = new Map(soluciones.map(p => [p.id,p.respuesta]));
 
 // 1. Iniciar sesión una vez por alumno.
 const alumnos = Array.from({ length: Math.min(ALUMNOS, ALUMNOS_DEL_CURSO) }, (_, i) => `alu-${String(i + 1).padStart(2, "0")}`);
