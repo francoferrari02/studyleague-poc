@@ -163,6 +163,8 @@ services:
   simulador:
     profiles: ["tools"]
     build: { context: ., args: { WORKSPACE: tools/simulador } }
+    # entrypoint (no CMD) para que `docker compose run --rm simulador --alumnos 200` pase las opciones al script.
+    entrypoint: ["node", "dist/index.js"]
     environment:
       API_URL: http://api:3000
     depends_on:

@@ -9,8 +9,13 @@
  *   --curso ID         curso de destino (por defecto bio-2b, el del seed)
  *   --segundos S       ventana en la que se reparten los envíos (por defecto 10)
  *   --bajo-dominio ID  hace que casi todos fallen ese concepto (para la demo del aviso al docente)
+ *
+ * Cada partida se juega como en la app: el alumno inicia sesión (alu-01 … alu-30, clave alumno123),
+ * pide las preguntas (GET /cursos/:id/partida-nueva) y manda lo que respondió (respuesta_dada);
+ * la API corrige. Al final espera a que el ranking procese todas las partidas e imprime GET /metricas.
+ * Sale con código 1 si alguna partida falló o no llegó al ranking.
  */
-import type { Minijuego, RespuestaEvento } from "@studyleague/shared";
+import type { Minijuego } from "@studyleague/shared";
 
 const args = process.argv.slice(2);
 function opcion(nombre: string, porDefecto: string): string {
@@ -23,6 +28,10 @@ const ALUMNOS = Number(opcion("alumnos", "30"));
 const CURSO = opcion("curso", "bio-2b");
 const SEGUNDOS = Number(opcion("segundos", "10"));
 const BAJO_DOMINIO = opcion("bajo-dominio", "");
+const CLAVE = "alumno123";
+const ALUMNOS_DEL_CURSO = 30;
+const ESPERA_RANKING_MS = 30_000;
+const MINIJUEGO: Minijuego = "trivia";
 
 // Mismos conceptos y porcentajes que los mockups (D6).
 const CONCEPTOS: Record<string, number> = {
@@ -33,41 +42,71 @@ const CONCEPTOS: Record<string, number> = {
   mitosis: 0.34,
 };
 
-function respuestas(): RespuestaEvento[] {
-  const ids = Object.keys(CONCEPTOS);
-  return Array.from({ length: 10 }, (_, i) => {
-    const concepto_id = ids[i % ids.length];
-    const probAcierto = concepto_id === BAJO_DOMINIO ? 0.1 : CONCEPTOS[concepto_id];
-    return {
-      pregunta_id: `${concepto_id}-p${i + 1}`,
-      concepto_id,
-      correcta: Math.random() < probAcierto,
-      tiempo_ms: Math.round(3_000 + Math.random() * 15_000),
-    };
-  });
+interface Pregunta {
+  pregunta_id: string;
+  concepto_id: string;
+  opciones: string[];
+  respuesta_correcta: unknown;
 }
 
-async function enviar(n: number) {
-  const alumno = `alu-${String((n % 30) + 1).padStart(2, "0")}`;
-  const minijuego: Minijuego = "trivia";
-  const res = await fetch(`${API_URL}/partidas`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ curso_id: CURSO, alumno_id: alumno, minijuego, respuestas: respuestas() }),
+/** El usuario de alu-01 es "tomas"; el resto entra con su id. */
+const usuarioDe = (alumnoId: string) => (alumnoId === "alu-01" ? "tomas" : alumnoId);
+
+async function pedir<T>(ruta: string, opciones: { token?: string; cuerpo?: unknown; metodo?: string } = {}): Promise<T> {
+  const res = await fetch(`${API_URL}${ruta}`, {
+    method: opciones.metodo ?? (opciones.cuerpo ? "POST" : "GET"),
+    headers: {
+      ...(opciones.cuerpo ? { "content-type": "application/json" } : {}),
+      ...(opciones.token ? { authorization: `Bearer ${opciones.token}` } : {}),
+    },
+    body: opciones.cuerpo ? JSON.stringify(opciones.cuerpo) : undefined,
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`${ruta}: HTTP ${res.status} ${await res.text()}`);
+  return (await res.json()) as T;
+}
+
+/** Elige la opción correcta con la probabilidad del concepto; si no, una incorrecta al azar. */
+function responder(p: Pregunta) {
+  const probAcierto = p.concepto_id === BAJO_DOMINIO ? 0.1 : (CONCEPTOS[p.concepto_id] ?? 0.5);
+  const incorrectas = p.opciones.filter((o) => o !== p.respuesta_correcta);
+  const acierta = Math.random() < probAcierto || incorrectas.length === 0;
+  return {
+    pregunta_id: p.pregunta_id,
+    respuesta_dada: acierta ? p.respuesta_correcta : incorrectas[Math.floor(Math.random() * incorrectas.length)],
+    tiempo_ms: Math.round(3_000 + Math.random() * 15_000),
+  };
+}
+
+// 1. Iniciar sesión una vez por alumno.
+const alumnos = Array.from({ length: Math.min(ALUMNOS, ALUMNOS_DEL_CURSO) }, (_, i) => `alu-${String(i + 1).padStart(2, "0")}`);
+const tokens = new Map<string, string>();
+await Promise.all(
+  alumnos.map(async (id) => {
+    const { token } = await pedir<{ token: string }>("/auth/alumno", { cuerpo: { usuario: usuarioDe(id), clave: CLAVE } });
+    tokens.set(id, token);
+  }),
+);
+
+// 2. Jugar N partidas repartidas en la ventana de tiempo.
+async function jugar(n: number) {
+  const token = tokens.get(alumnos[n % alumnos.length])!;
+  const { preguntas } = await pedir<{ preguntas: Pregunta[] }>(`/cursos/${CURSO}/partida-nueva?minijuego=${MINIJUEGO}`, { token });
+  const r = await pedir<{ partida_id: string }>("/partidas", {
+    token,
+    cuerpo: { curso_id: CURSO, minijuego: MINIJUEGO, respuestas: preguntas.map(responder) },
+  });
+  return { partida_id: r.partida_id, token };
 }
 
 const inicio = Date.now();
-let ok = 0;
+const jugadas: Array<{ partida_id: string; token: string }> = [];
 let fallas = 0;
 await Promise.all(
   Array.from({ length: ALUMNOS }, (_, n) =>
     new Promise<void>((resolve) => {
       setTimeout(async () => {
         try {
-          await enviar(n);
-          ok++;
+          jugadas.push(await jugar(n));
         } catch (e) {
           fallas++;
           console.error(String(e));
@@ -77,7 +116,33 @@ await Promise.all(
     }),
   ),
 );
+const segundos = (Date.now() - inicio) / 1000;
+
+// 3. Esperar a que ranking-consumer procese todas las partidas (B4).
+let pendientes = jugadas;
+const limite = Date.now() + ESPERA_RANKING_MS;
+while (pendientes.length > 0 && Date.now() < limite) {
+  const estados = await Promise.all(
+    pendientes.map((j) =>
+      pedir<{ estado: string }>(`/partidas/${j.partida_id}/ranking`, { token: j.token }).catch(() => ({ estado: "error" })),
+    ),
+  );
+  pendientes = pendientes.filter((_, i) => estados[i].estado !== "actualizado");
+  if (pendientes.length > 0) await new Promise((r) => setTimeout(r, 250));
+}
+
+// 4. Latencia partida → ranking.
+const metricas = await pedir<Record<string, number | null>>("/metricas", { token: tokens.values().next().value });
 
 console.log(
-  JSON.stringify({ enviadas: ok, fallas, segundos: (Date.now() - inicio) / 1000, curso: CURSO, bajo_dominio: BAJO_DOMINIO || null }),
+  JSON.stringify({
+    enviadas: jugadas.length,
+    fallas,
+    segundos,
+    curso: CURSO,
+    bajo_dominio: BAJO_DOMINIO || null,
+    sin_actualizar_en_ranking: pendientes.length,
+    metricas,
+  }),
 );
+if (fallas > 0 || pendientes.length > 0) process.exit(1);
