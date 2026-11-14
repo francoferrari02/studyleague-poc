@@ -1,3 +1,4 @@
+import { Analitica } from "./pages/docente/Analitica";
 import { Cursos } from "./pages/docente/Cursos";
 import { Ranking } from "./pages/alumno/Ranking";
 import { Resultado } from "./pages/alumno/Resultado";
@@ -50,7 +51,8 @@ export function App() {
       </Route>
       </Route><Route element={<Protegida rol="docente" />}><Route element={<LayoutDocente />}>
         <Route path="/docente/cursos" element={<Cursos />} />
-        {PANTALLAS.filter((p) => p.rol === "docente" && !p.ruta.endsWith("ingreso") && p.ruta !== "/docente/cursos").map((p) => (
+        <Route path="/docente/cursos/:cursoId/analitica" element={<Analitica />} />
+        {PANTALLAS.filter((p) => p.rol === "docente" && !p.ruta.endsWith("ingreso") && !["/docente/cursos", "/docente/cursos/:cursoId/analitica"].includes(p.ruta)).map((p) => (
           <Route key={p.ruta} path={p.ruta} element={<Marcador pantalla={p} />} />
         ))}
       </Route>

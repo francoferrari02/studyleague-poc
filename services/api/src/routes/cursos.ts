@@ -33,21 +33,28 @@ export async function rutasCursos(app: FastifyInstance) {
       schema: {
         summary: "Aciertos por concepto del curso (tabla analitica_concepto). Solo el docente del curso.",
         tags: ["docente"],
+        params: { type: "object", required: ["cursoId"], properties: { cursoId: { type: "string", minLength: 1 } } },
       },
       preHandler: exigirCurso("docente"),
     },
     async (request) => {
       const { rows } = await db.query(
-        `SELECT a.concepto_id, c.nombre, a.respuestas, a.aciertos,
-                round(a.aciertos::numeric / NULLIF(a.respuestas, 0), 2)::float AS porcentaje_aciertos,
-                a.alerta_enviada, a.actualizado_en
-           FROM analitica_concepto a
-           JOIN conceptos c ON c.id = a.concepto_id
-          WHERE a.curso_id = $1
-          ORDER BY porcentaje_aciertos NULLS LAST, a.concepto_id`,
+        `SELECT c.id AS concepto_id, c.nombre, coalesce(a.respuestas,0) AS respuestas, coalesce(a.aciertos,0) AS aciertos,
+                a.aciertos::float / NULLIF(a.respuestas, 0) AS porcentaje_aciertos,
+                coalesce(a.alerta_enviada,false) AS alerta_enviada, a.actualizado_en
+           FROM conceptos c LEFT JOIN analitica_concepto a ON a.concepto_id=c.id AND a.curso_id=c.curso_id
+          WHERE c.curso_id = $1
+          ORDER BY porcentaje_aciertos NULLS LAST, c.id`,
         [request.params.cursoId],
       );
-      return { curso_id: request.params.cursoId, conceptos: rows };
+      const [{ rows: cursos }, { rows: indicadores }] = await Promise.all([
+        db.query("SELECT id,nombre FROM cursos WHERE id=$1", [request.params.cursoId]),
+        db.query(`SELECT (SELECT count(*)::int FROM inscripciones WHERE curso_id=$1) AS alumnos,
+          count(DISTINCT alumno_id)::int AS participaron, count(*)::int AS partidas
+          FROM partidas WHERE curso_id=$1 AND finalizada_en>=date_trunc('week',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC'`, [request.params.cursoId]),
+      ]);
+      const k = indicadores[0];
+      return { curso_id: request.params.cursoId, curso: cursos[0], kpis: { ...k, frecuencia: k.alumnos ? k.partidas/k.alumnos : 0 }, conceptos: rows };
     },
   );
 }
