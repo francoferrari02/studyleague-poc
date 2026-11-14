@@ -8,7 +8,7 @@
  * Reemplaza el ranking de la semana actual del curso. REDIS_URL por defecto: redis://localhost:6379.
  */
 import { Redis } from "ioredis";
-import { claveRanking, semanaIso } from "@studyleague/shared";
+import { claveRanking, semanaIso } from "@studyleague/shared/ranking";
 
 const CURSO = "bio-2b";
 const PARTIDA_DE_TOMAS = 820;
@@ -25,7 +25,7 @@ const PUNTOS: Record<string, number> = {
   "alu-07": 1870,
 };
 // El resto, con puntajes decrecientes plausibles.
-const RESTO = [1820, 1765, 1710, 1650, 1600, 1540, 1490, 1430, 1380, 1320, 1260, 1210, 1150, 1090, 1030, 980, 920, 860, 800, 740, 680, 610, 540];
+const RESTO = [1260, 1210, 1160, 1110, 1060, 1010, 960, 910, 860, 810, 760, 710, 660, 610, 560, 510, 460, 410, 360, 310, 260, 210, 160];
 RESTO.forEach((puntos, i) => (PUNTOS[`alu-${String(i + 8).padStart(2, "0")}`] = puntos));
 if (!despues) PUNTOS["alu-01"] -= PARTIDA_DE_TOMAS;
 

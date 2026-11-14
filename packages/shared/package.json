@@ -11,5 +11,15 @@
   },
   "dependencies": {
     "@confluentinc/kafka-javascript": "^1.4.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ranking": {
+      "types": "./dist/ranking.d.ts",
+      "import": "./dist/ranking.js"
+    }
   }
 }

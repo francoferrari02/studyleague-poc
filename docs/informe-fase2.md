@@ -1,0 +1,18 @@
+# Informe de Fase 2 (en curso)
+
+## Tareas y verificaciones
+
+| Tarea | Estado | Commit |
+| --- | --- | --- |
+| R1 | Verificado con Redis: Tomás 7º/1270 → 4º/2090; restaurado 7º | `R1: corregir el ranking inicial y verificar los puestos de Tomás` |
+
+R1: `npm run build`, `docker compose config -q` y `bash scripts/verificar-seed.sh` terminaron con código 0 (Node 22.12.0). El script comprueba ZREVRANK y ZSCORE en ambos estados.
+
+Se exportó el submódulo puro `@studyleague/shared/ranking` para que el seed no cargue el cliente nativo de Kafka innecesariamente. En el host ese binario había sido compilado para Node 20 y fallaba bajo Node 22. El seed ahora funciona sin recompilar Kafka ni escribir fuera del proyecto.
+
+Los 29 frames se extrajeron a `.tmp-mockups/`, ignorada por Git; son bundles anidados y se leyó su template JSON interno para obtener HTML/CSS reales. Se eliminará la carpeta al cerrar la fase.
+
+## Discrepancias pendientes de definición
+
+- D1 es Ingreso docente y D2 es Mis cursos en el plan, mapa de rutas y frames; la consigna describe otras funciones para esos códigos.
+- D6 muestra Mitosis 34%/18 respuestas, Organelas 47%/31, Membrana celular 55%/39, Fotosíntesis 68%/47 y Célula 82%/52. Varias combinaciones no corresponden a porcentajes redondeados de aciertos enteros. La consigna pide unas 18 respuestas por concepto. Se consultó cómo reconciliar los datos antes de R2.
