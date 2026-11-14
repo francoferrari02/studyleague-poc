@@ -1,8 +1,20 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../clients.js";
+import { proximoDia } from "./alumnos.js";
 import { MENSAJES, exigirRol } from "../auth.js";
 
 export async function rutasDocentes(app: FastifyInstance) {
+  app.get("/docentes/yo/cursos", { schema: { summary: "Perfil y cursos propios con participación semanal (D2)", tags: ["docente"] }, preHandler: exigirRol("docente") }, async request => {
+    const [{ rows: perfil }, { rows: cursos }] = await Promise.all([
+      db.query("SELECT d.nombre,e.nombre AS escuela FROM docentes d JOIN escuelas e ON e.id=d.escuela_id WHERE d.id=$1", [request.user.id]),
+      db.query(`SELECT c.id,c.nombre,c.dias_juego,c.minijuegos,
+        (SELECT count(*)::int FROM inscripciones WHERE curso_id=c.id) AS alumnos,
+        (SELECT count(DISTINCT alumno_id)::int FROM partidas WHERE curso_id=c.id AND finalizada_en>=date_trunc('week',now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC') AS participaron,
+        (SELECT count(*)::int FROM analitica_concepto WHERE curso_id=c.id AND respuestas>=10 AND aciertos::float/respuestas<0.4) AS bajo_dominio
+        FROM cursos c WHERE c.docente_id=$1 ORDER BY c.id`, [request.user.id]),
+    ]);
+    return { docente: perfil[0], cursos: cursos.map(c=>({...c,...proximoDia(c.dias_juego)})) };
+  });
   app.get(
     "/docentes/yo/notificaciones",
     {
