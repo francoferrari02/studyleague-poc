@@ -12,3 +12,124 @@ body{font-family:var(--fuente-alumno);line-height:1.4}button,input,select{font:i
 .docente-main{position:relative}.docente-main .encabezado{padding-right:60px;min-height:44px}.docente-campana{position:absolute;top:28px;right:40px;z-index:5}.notificaciones-panel{position:absolute;top:84px;right:40px;width:420px;max-width:calc(100% - 32px);border:1px solid var(--borde);border-radius:12px;background:white;box-shadow:0 12px 32px #1e1b3a33;z-index:8;overflow:auto;max-height:calc(100dvh - 120px)}.notificaciones-panel>header{padding:16px 20px;border-bottom:1px solid var(--borde);gap:8px}.notificaciones-panel>header>span{font-size:12px;color:var(--violeta-oscuro);margin-left:auto}.notificaciones-panel>header .icono-boton{width:28px;height:28px;border:0}.aviso{display:flex;gap:12px;padding:16px 20px;border-bottom:1px solid var(--borde)}.aviso.nuevo{background:var(--violeta-suave)}.aviso-icono{width:36px;height:36px;border-radius:50%;background:var(--coral);display:grid;place-items:center;flex:none}.aviso-texto{display:flex;flex-direction:column;gap:4px}.aviso-texto strong{font-size:14px;font-weight:600;line-height:20px}.aviso-texto small{font-size:12px;color:var(--texto-secundario)}.aviso-nueva{font-size:12px;color:var(--violeta-oscuro);font-weight:600;margin-left:auto}.notificaciones-panel>.vacio{padding:14px 20px;font-size:12px}.notificacion-toast{position:fixed;right:24px;bottom:24px;width:400px;max-width:calc(100vw - 32px);padding:16px;background:var(--texto);color:white;border-radius:12px;box-shadow:0 12px 32px #1e1b3a55;display:flex;gap:12px;z-index:9}.notificacion-toast>a{display:grid;gap:4px}.notificacion-toast span{font-size:12px;color:#c9c4e8}.notificacion-toast button{align-self:flex-start;color:white;background:none;border:0;padding:4px}@media(max-width:600px){.docente-campana{top:20px;right:16px}.notificaciones-panel{right:16px;top:76px}}
 /* Ajustes tras comparar capturas con los frames A1 y A3. */
 input::placeholder{color:var(--texto-secundario);opacity:1;font-weight:400}.ingreso-alumno{padding:48px 20px 24px;gap:0;min-height:844px}.ingreso-alumno>.marca{font-size:28px;line-height:34px}.ingreso-alumno>.marca svg{width:34px;height:34px}.ingreso-emblema{width:120px;height:120px;border-radius:50%;background:var(--violeta-suave);color:var(--violeta);position:relative;display:grid;place-items:center;align-self:center;margin:28px 0 20px}.ingreso-emblema>svg:nth-child(2){position:absolute;right:6px;top:10px;color:var(--amarillo)}.ingreso-emblema>svg:nth-child(3){position:absolute;left:4px;bottom:18px;color:var(--amarillo)}.ingreso-alumno .ingreso-formulario{gap:4px}.ingreso-alumno .ingreso-formulario h1{line-height:36px}.ingreso-alumno .ingreso-formulario>p{margin-bottom:20px}.ingreso-alumno .ingreso-formulario form{gap:16px}.ingreso-alumno form>.boton{margin-top:8px}.ingreso-alumno footer{font-size:14px}.ingreso-alumno .ingreso-otro{margin-top:24px}.inicio-alumno{gap:16px}.invitacion{background:var(--violeta);color:white;gap:12px;padding:20px;border:0;box-shadow:var(--sombra)}.invitacion>.chip{background:#ffffff30;color:white;font-size:14px;padding:4px 12px;line-height:20px}.invitacion h2{font-size:26px}.invitacion .boton{background:var(--amarillo);color:var(--texto);box-shadow:0 4px 0 #d79a00;margin-top:8px}.curso-alumno{padding:12px 14px;border:2px solid var(--borde);border-radius:16px;box-shadow:none;min-height:64px}.inicio-alumno>a>.tarjeta{padding:14px 16px}.inicio-alumno h2.titulo-alumno{font-size:22px}.inicio-alumno .salir{padding:4px;min-height:28px;align-self:center}.inicio-alumno>header .chip{background:white;box-shadow:var(--sombra);font-size:18px;padding:8px 14px}
+
+/* Portada de la demo (/) */
+.portada {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 15% 0%, var(--violeta-suave), transparent 55%), var(--fondo-alumno);
+  font-family: var(--fuente-docente);
+}
+.portada-encabezado {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.portada-contenido {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+  display: grid;
+  gap: 40px;
+  flex: 1;
+  align-content: center;
+}
+.portada-intro {
+  display: grid;
+  gap: 16px;
+  max-width: 640px;
+}
+.portada-intro h1 {
+  font-family: var(--fuente-titulo);
+  font-weight: 600;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.1;
+}
+.portada-intro p {
+  font-size: 18px;
+  line-height: 1.5;
+}
+.portada-opciones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+.portada-opcion {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px;
+  background: var(--superficie);
+  border: 2px solid var(--borde);
+  border-radius: var(--radio-tarjeta-alumno);
+  box-shadow: var(--sombra);
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.portada-opcion:hover {
+  border-color: var(--violeta);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(109, 74, 255, 0.15);
+}
+.portada-icono {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--violeta-suave);
+  color: var(--violeta-oscuro);
+  margin-bottom: 6px;
+}
+.portada-rol {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--violeta-oscuro);
+}
+.portada-titulo {
+  font-family: var(--fuente-titulo);
+  font-size: 24px;
+  font-weight: 600;
+}
+.portada-prueba {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--fondo-docente);
+  font-size: 13px;
+  color: var(--texto-secundario);
+}
+.portada-prueba code {
+  color: var(--texto);
+  font-weight: 600;
+}
+.portada-accion {
+  margin-top: auto;
+  padding-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--violeta);
+  font-weight: 700;
+}
+.portada-pie {
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13px;
+}
+.portada-encabezado .chip {
+  white-space: nowrap;
+}
+@media (max-width: 420px) {
+  .portada-encabezado .chip {
+    display: none;
+  }
+}
