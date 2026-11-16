@@ -3,6 +3,7 @@
 .git
 .env
 docs
+docs-local
 
 .tmp-mockups
 .npm-cache

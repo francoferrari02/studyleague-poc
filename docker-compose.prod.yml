@@ -9,9 +9,9 @@ services:
     # publicado (las 2.11.8 y 2.11.9 son de los últimos días).
     image: caddy:2.11.7
     environment:
-      DOMINIO: ${DOMINIO}
-      BASIC_AUTH_USER: ${BASIC_AUTH_USER}
-      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH}
+      DOMINIO: ${DOMINIO:?Falta DOMINIO en .env}
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:?Falta BASIC_AUTH_USER en .env}
+      BASIC_AUTH_HASH: ${BASIC_AUTH_HASH:?Falta BASIC_AUTH_HASH en .env}
     ports:
       - "80:80"
       - "443:443"
@@ -32,6 +32,9 @@ services:
     ports: !reset []
   api:
     ports: !reset []
+    environment:
+      # En la nube no vale el secreto por defecto de docker-compose.yml.
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en .env (openssl rand -hex 32)}
   web:
     ports: !reset []
   kafka-ui:

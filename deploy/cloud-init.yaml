@@ -1,0 +1,13 @@
+#cloud-config
+# Primer arranque de la VM: swap (para construir las imagenes con 4 GB de RAM y Kafka
+# corriendo) y Docker Engine con el plugin de Compose.
+# IMPORTANTE: solo caracteres ASCII. Azure no decodifica bien acentos en custom-data
+# y cloud-init descarta el archivo entero sin avisar.
+swap:
+  filename: /swapfile
+  size: 4G
+  maxsize: 4G
+runcmd:
+  - curl -fsSL https://get.docker.com | sh
+  - usermod -aG docker azureuser
+  - systemctl enable --now docker

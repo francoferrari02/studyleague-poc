@@ -129,8 +129,10 @@ services:
     environment:
       <<: *entorno-node
       API_PORT: 3000
-      # Secreto para firmar los tokens de sesión. Sin él la API no arranca.
-      JWT_SECRET: ${JWT_SECRET}
+      # Secreto para firmar los tokens de sesión. El valor por defecto es solo para
+      # correr la PoC en local con `docker compose up`; en la nube
+      # docker-compose.prod.yml exige uno propio en .env.
+      JWT_SECRET: ${JWT_SECRET:-solo-local-no-usar-en-la-nube-studyleague-poc}
     ports:
       - "${API_PORT:-3000}:3000"
 
@@ -170,6 +172,19 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-studyleague}:${POSTGRES_PASSWORD:-studyleague}@postgres:5432/${POSTGRES_DB:-studyleague}
     depends_on:
       - api
+
+  seed-ranking:
+    # Carga el ranking del mockup A14 en Redis sin necesitar Node en el host (lo usa demo-reset).
+    #   docker compose run --rm seed-ranking            # antes de jugar
+    #   docker compose run --rm seed-ranking --despues  # después de jugar
+    profiles: ["tools"]
+    build: { context: ., args: { WORKSPACE: tools/seed-ranking } }
+    entrypoint: ["node", "dist/index.js"]
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
 
 volumes:
   kafka-data:

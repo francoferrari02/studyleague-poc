@@ -12,3 +12,6 @@ coverage/
 
 .npm-cache/
 .verificacion/
+
+# Material interno del equipo (enunciado, borradores): no se sube
+docs-local/

@@ -1,10 +1,26 @@
 # Proxy del deploy en la nube (docker-compose.prod.yml).
 # Caddy obtiene el certificado HTTPS solo, a partir del dominio.
-# Todo queda detrás de usuario y contraseña (basic auth); Kafka, PostgreSQL y Redis no se exponen.
+# Kafka, PostgreSQL y Redis no se exponen.
+#
+# Credenciales en dos niveles:
+# - La web, Swagger y Kafka UI quedan detrás de usuario y contraseña (basic auth).
+# - La API (/api/*) NO lleva basic auth: se protege con sus propios tokens JWT, que viajan en
+#   el mismo header Authorization ("Bearer ..."). Si /api tuviera basic auth, cada pedido de la
+#   web con token pisaría las credenciales del navegador y Caddy respondería 401.
+#   Solo quedan públicas las rutas que la API ya deja sin token (/auth/*, /salud, /health).
 
-{$DOMINIO} {
+(credenciales) {
 	basic_auth {
 		{$BASIC_AUTH_USER} {$BASIC_AUTH_HASH}
+	}
+}
+
+{$DOMINIO} {
+	@swagger path /api/docs /api/docs/*
+	handle @swagger {
+		import credenciales
+		uri strip_prefix /api
+		reverse_proxy api:3000
 	}
 
 	handle_path /api/* {
@@ -13,10 +29,12 @@
 
 	# Kafka UI corre con SERVER_SERVLET_CONTEXT_PATH=/kafka-ui, por eso no se recorta la ruta.
 	handle /kafka-ui* {
+		import credenciales
 		reverse_proxy kafka-ui:8080
 	}
 
 	handle {
+		import credenciales
 		reverse_proxy web:80
 	}
 }

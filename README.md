@@ -33,10 +33,8 @@ No son microservicios: es una API principal más consumidores livianos. Detalle 
 ## Cómo levantarlo
 
 ```bash
-cp .env.example .env
-# Completá JWT_SECRET en .env (mínimo 32 caracteres), por ejemplo con:
-#   sed -i.bak "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" .env
 docker compose up -d --build
+# Opcional: cp .env.example .env para cambiar puertos o claves (en local JWT_SECRET tiene un valor por defecto).
 ```
 
 Los datos de ejemplo (`infra/postgres/init`) solo se cargan con el volumen vacío: para recargarlos, `docker compose down -v`.
@@ -58,11 +56,11 @@ Todas las rutas piden `Authorization: Bearer <token>` salvo `/health`, `/salud`,
 | API y Swagger | http://localhost:3000/docs |
 | Kafka UI | http://localhost:8080 |
 
-Para cargar en Redis el ranking semanal de Biología · 2.º B del mockup A14 (necesita Node y `npm install`):
+Para cargar en Redis el ranking semanal de Biología · 2.º B del mockup A14:
 
 ```bash
-npm run seed:ranking                # Tomás con 1.270 puntos: estado "antes de jugar"
-npm run seed:ranking -- --despues   # Tomás con 2.090 puntos (puesto 4)
+docker compose run --rm seed-ranking             # Tomás con 1.270 puntos: estado "antes de jugar"
+docker compose run --rm seed-ranking --despues   # Tomás con 2.090 puntos (puesto 4)
 ```
 
 Para simular un pico de día de juego:
@@ -111,6 +109,15 @@ Una máquina virtual con Docker corre el mismo `docker-compose.yml` más `docker
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
+En Azure lo automatiza `deploy/azure.sh` (requiere Azure CLI con `az login`, `ssh` y `rsync`). Crea una VM B2als_v2 (2 vCPU, 4 GB) con Ubuntu 24.04 en Chile Central, copia el clon local, genera en la VM un `.env` con secretos propios y levanta todo con HTTPS:
+
+```bash
+./deploy/azure.sh up        # crea o prende la VM y despliega (también para actualizar)
+./deploy/azure.sh down      # apaga y desasigna la VM para no gastar crédito
+./deploy/azure.sh estado    # prendida/apagada y URL
+./deploy/azure.sh ssh bash scripts/demo-reset.sh   # reset de la demo en la VM
+```
+
 <!-- TODO: completar antes del 19/11 -->
 - URL: _pendiente_
 - Credenciales de acceso: _pendiente (se entregan aparte, no se suben al repo)_
@@ -121,7 +128,7 @@ Fases 1 y 2 implementadas: Trivia, puesto en vivo, ranking semanal e ingreso/cur
 
 ## Antes de cada demo/ensayo
 
-Con el stack iniciado, ejecutá `npm run demo:reset`. Es un reset **exclusivo de esta PoC**: borra todas las partidas, outbox, notificaciones, proyecciones, ranking, rachas y métricas; conserva usuarios, cursos y preguntas. Detiene los productores/consumidores y recrea los tres tópicos para que no se reproduzcan eventos viejos. Se puede repetir. Requiere Node 22, npm, Docker Compose y `rg`.
+Con el stack iniciado, ejecutá `npm run demo:reset`. Es un reset **exclusivo de esta PoC**: borra todas las partidas, outbox, notificaciones, proyecciones, ranking, rachas y métricas; conserva usuarios, cursos y preguntas. Detiene los productores/consumidores y recrea los tres tópicos para que no se reproduzcan eventos viejos. Se puede repetir. Solo requiere Docker Compose (en la VM: `bash scripts/demo-reset.sh`).
 
 Mitosis arranca en 6/18 (33 %, frente al 34 % ilustrativo del mockup), con alerta enviada y un aviso existente. Organelas arranca en 14/30 (47 %), sin aviso: con seis respuestas incorrectas más cae a 39 %. Los demás contadores son 21/38, 32/47 y 42/51 (55 %, 68 %, 82 %). El reset usa Bash + SQL para reutilizar Compose y el seed sin sumar dependencias.
 
