@@ -1,0 +1,164 @@
+{
+  "descripcion": "Mediciones en la VM de Azure (Chile Central, Standard_B2als_v2: 2 vCPU, 4 GB, Ubuntu 24.04) con docker-compose.yml + docker-compose.prod.yml. Simulador en la misma VM (números conservadores). Reproducir con: ./deploy/azure.sh ssh bash scripts/medir-carga.sh <partidas> <segundos>. La latencia es partida→ranking sobre las últimas 1.000 muestras.",
+  "asr_1000_en_60s": {
+    "fecha": "2026-11-16 04:10:00.56864+00",
+    "carga": {
+      "partidas": 1000,
+      "segundos": 60
+    },
+    "simulador": {
+      "enviadas": 1000,
+      "fallas": 0,
+      "segundos": 59.936,
+      "curso": "bio-2b",
+      "bajo_dominio": null,
+      "sin_actualizar_en_ranking": 0,
+      "metricas": {
+        "muestras": 1000,
+        "p50_ms": 16,
+        "p95_ms": 34,
+        "max_ms": 230
+      }
+    },
+    "sin_perdida": {
+      "partidas_guardadas": 1000,
+      "procesadas_por_analitica": 1000,
+      "outbox_pendiente": 0
+    },
+    "maquina": {
+      "vcpu": 2,
+      "mem_total_mib": 3906
+    },
+    "recursos": {
+      "rachas-consumer": {
+        "cpu_pico_pct": 7.2,
+        "mem_pico_mib": 80
+      },
+      "api": {
+        "cpu_pico_pct": 14.4,
+        "mem_pico_mib": 78
+      },
+      "web": {
+        "cpu_pico_pct": 0.0,
+        "mem_pico_mib": 3
+      },
+      "analitica-consumer": {
+        "cpu_pico_pct": 6.4,
+        "mem_pico_mib": 34
+      },
+      "postgres": {
+        "cpu_pico_pct": 18.9,
+        "mem_pico_mib": 58
+      },
+      "redis": {
+        "cpu_pico_pct": 14.5,
+        "mem_pico_mib": 10
+      },
+      "notificaciones-consumer": {
+        "cpu_pico_pct": 0.6,
+        "mem_pico_mib": 17
+      },
+      "kafka": {
+        "cpu_pico_pct": 158.3,
+        "mem_pico_mib": 632
+      },
+      "caddy": {
+        "cpu_pico_pct": 0.0,
+        "mem_pico_mib": 12
+      },
+      "ranking-consumer": {
+        "cpu_pico_pct": 4.0,
+        "mem_pico_mib": 32
+      },
+      "kafka-ui": {
+        "cpu_pico_pct": 6.5,
+        "mem_pico_mib": 294
+      }
+    }
+  },
+  "triple_3000_en_60s": {
+    "fecha": "2026-11-16 04:15:33.349523+00",
+    "carga": {
+      "partidas": 3000,
+      "segundos": 60
+    },
+    "simulador": {
+      "enviadas": 3000,
+      "fallas": 0,
+      "segundos": 60.009,
+      "curso": "bio-2b",
+      "bajo_dominio": null,
+      "sin_actualizar_en_ranking": 0,
+      "metricas": {
+        "muestras": 1000,
+        "p50_ms": 20,
+        "p95_ms": 52,
+        "max_ms": 151
+      }
+    },
+    "sin_perdida": {
+      "partidas_guardadas": 3000,
+      "procesadas_por_analitica": 3000,
+      "outbox_pendiente": 0
+    },
+    "maquina": {
+      "vcpu": 2,
+      "mem_total_mib": 3906
+    },
+    "recursos": {
+      "rachas-consumer": {
+        "cpu_pico_pct": 8.2,
+        "mem_pico_mib": 115
+      },
+      "api": {
+        "cpu_pico_pct": 58.7,
+        "mem_pico_mib": 100
+      },
+      "web": {
+        "cpu_pico_pct": 0.0,
+        "mem_pico_mib": 3
+      },
+      "analitica-consumer": {
+        "cpu_pico_pct": 10.0,
+        "mem_pico_mib": 35
+      },
+      "postgres": {
+        "cpu_pico_pct": 36.7,
+        "mem_pico_mib": 71
+      },
+      "redis": {
+        "cpu_pico_pct": 13.8,
+        "mem_pico_mib": 12
+      },
+      "notificaciones-consumer": {
+        "cpu_pico_pct": 0.1,
+        "mem_pico_mib": 18
+      },
+      "kafka": {
+        "cpu_pico_pct": 116.8,
+        "mem_pico_mib": 684
+      },
+      "caddy": {
+        "cpu_pico_pct": 0.0,
+        "mem_pico_mib": 12
+      },
+      "ranking-consumer": {
+        "cpu_pico_pct": 7.8,
+        "mem_pico_mib": 57
+      },
+      "kafka-ui": {
+        "cpu_pico_pct": 7.0,
+        "mem_pico_mib": 296
+      }
+    }
+  },
+  "replay": {
+    "fecha": "2026-11-16",
+    "eventos_reproducidos": 4000,
+    "segundos": 36,
+    "analitica_identica": true,
+    "avisos_antes": 7,
+    "avisos_despues": 7,
+    "comando": "./deploy/azure.sh ssh bash scripts/replay.sh"
+  }
+}
