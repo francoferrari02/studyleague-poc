@@ -23,6 +23,12 @@
 		reverse_proxy api:3000
 	}
 
+	# Swagger UI pide sus archivos con rutas absolutas (/docs/static/..., /docs/json).
+	handle /docs* {
+		import credenciales
+		reverse_proxy api:3000
+	}
+
 	handle_path /api/* {
 		reverse_proxy api:3000
 	}

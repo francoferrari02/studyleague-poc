@@ -23,6 +23,8 @@ await app.register(swagger, {
       description: "API de partidas de la prueba de concepto. Publica partida.finalizada en Kafka.",
       version: "0.1.0",
     },
+    // En la nube la API se publica detrás de Caddy en /api: "Try it out" tiene que llamar ahí.
+    servers: [{ url: process.env.API_PREFIJO_PUBLICO ?? "/" }],
     // Botón "Authorize" de Swagger: pegar el token de POST /auth/alumno o /auth/docente.
     components: {
       securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } },

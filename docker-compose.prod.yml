@@ -35,6 +35,8 @@ services:
     environment:
       # En la nube no vale el secreto por defecto de docker-compose.yml.
       JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET en .env (openssl rand -hex 32)}
+      # Caddy publica la API en /api (Swagger lo usa para "Try it out").
+      API_PREFIJO_PUBLICO: /api
   web:
     ports: !reset []
   kafka-ui:
