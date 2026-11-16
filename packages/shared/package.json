@@ -20,6 +20,10 @@
     "./ranking": {
       "types": "./dist/ranking.d.ts",
       "import": "./dist/ranking.js"
+    },
+    "./rachas": {
+      "types": "./dist/rachas.d.ts",
+      "import": "./dist/rachas.js"
     }
   }
 }

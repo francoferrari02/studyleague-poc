@@ -4,3 +4,4 @@ export * from "./kafka.js";
 export * from "./log.js";
 export * from "./ranking.js";
 export * from "./juego.js";
+export * from "./rachas.js";

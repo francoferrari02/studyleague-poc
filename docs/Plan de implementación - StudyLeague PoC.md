@@ -133,7 +133,7 @@ Si el domingo a la noche algo de "Imprescindible" no anda, se recorta de "Deseab
 | B7 · Métricas para la demo | **HECHO** | `31f67bf` (`GET /metricas`) |
 | C1 · `analitica-consumer` | **HECHO** | `d4224ed` |
 | C2 · `notificaciones-consumer` | **HECHO** | `2bcbf45` |
-| C3 · `rachas-consumer` | **PENDIENTE** | Prioridad 2. Hoy el archivo tiene `TODO(PoC)` y A3 siempre muestra racha 0 |
+| C3 · `rachas-consumer` | **HECHO** | Regla con `cursos.dias_juego` en hora de Argentina, Lua atómico idempotente, `jugados:<alumno>:<semana>`; la API muestra solo la racha vigente; `demo:reset` deja a Tomás con racha 4 |
 | C4 · Latencia en `ranking-consumer` | **HECHO** | `31f67bf` |
 | C5 · Simulador con el nuevo contrato | **HECHO** | `27cfaa3`; en Fase 2 pasó a leer las soluciones desde PostgreSQL y a fallar siempre el concepto objetivo |
 | C6 · Más datos de ejemplo | **PARCIAL** | Hechas: preguntas de trivia y verdadero o falso, seed del ranking (`a1572fc`), cursos extra (`003_demo_cursos.sql`). Faltan preguntas para los otros minijuegos (solo si se hace F5) |

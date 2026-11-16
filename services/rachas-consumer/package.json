@@ -11,6 +11,10 @@
   },
   "dependencies": {
     "@studyleague/shared": "0.1.0",
-    "ioredis": "^5.4.0"
+    "ioredis": "^5.4.0",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1"
   }
 }

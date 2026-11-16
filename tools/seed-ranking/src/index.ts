@@ -6,9 +6,12 @@
  *   npm run seed:ranking -- --despues    # Tomás con 2.090 (después de su partida de 820)
  *
  * Reemplaza el ranking de la semana actual del curso. REDIS_URL por defecto: redis://localhost:6379.
+ * También deja a Tomás con una racha de 4 días que terminó el día de juego anterior a hoy:
+ * si juega hoy (y hoy es día de juego), pasa a 5. Biología · 2.º B juega lunes, miércoles y viernes.
  */
 import { Redis } from "ioredis";
 import { claveRanking, semanaIso } from "@studyleague/shared/ranking";
+import { claveRacha, diaDeJuegoAnterior, fechaLocal } from "@studyleague/shared/rachas";
 
 const CURSO = "bio-2b";
 const PARTIDA_DE_TOMAS = 820;
@@ -34,10 +37,19 @@ const semana = semanaIso();
 const clave = claveRanking(CURSO, semana);
 
 const miembros = Object.entries(PUNTOS).flatMap(([alumno, puntos]) => [puntos, alumno]);
-await redis.multi().del(clave).zadd(clave, ...miembros).exec();
+const DIAS_JUEGO_BIO_2B = [1, 3, 5];
+const RACHA_DE_TOMAS = 4;
+const ultimoDia = diaDeJuegoAnterior(fechaLocal(), DIAS_JUEGO_BIO_2B)!;
+
+await redis
+  .multi()
+  .del(clave)
+  .zadd(clave, ...miembros)
+  .hset(claveRacha(CURSO, "alu-01"), { ultimo_dia: ultimoDia, dias: RACHA_DE_TOMAS })
+  .exec();
 
 const puesto = (await redis.zrevrank(clave, "alu-01"))! + 1;
 console.log(
-  JSON.stringify({ clave, alumnos: Object.keys(PUNTOS).length, estado: despues ? "después de jugar" : "antes de jugar", tomas: { puntos: PUNTOS["alu-01"], puesto } }),
+  JSON.stringify({ clave, alumnos: Object.keys(PUNTOS).length, estado: despues ? "después de jugar" : "antes de jugar", tomas: { puntos: PUNTOS["alu-01"], puesto, racha: RACHA_DE_TOMAS, ultimo_dia: ultimoDia } }),
 );
 await redis.quit();
