@@ -120,9 +120,9 @@ Si el domingo a la noche algo de "Imprescindible" no anda, se recorta de "Deseab
 | I1 · Primer `docker compose up` real | **HECHO** | `da239ba` |
 | I2 · Repositorio en GitHub | **PARCIAL** | Repo creado y con remoto (`origin`). Falta: proteger `main` con PR + CI y confirmar que los 4 clonan y compilan. Decidir público/privado según la cátedra. |
 | I3 · Versiones fijas de imágenes | **HECHO** | `3929f32` (la imagen de nginx fija solo la versión menor) |
-| I4 · VM en la nube | **PENDIENTE** | Prioridad 1 |
+| I4 · VM en la nube | **HECHO** | Azure, Chile Central, B2als_v2. `deploy/azure.sh up/down`. Caddy con basic auth (usuario `catedra`) salvo `/api`, que usa JWT. Mediciones en `docs/mediciones-nube.json` |
 | I5 · Prueba en máquina limpia | **PENDIENTE** | |
-| I6 · README final | **PARCIAL** | Existen secciones de cómo correr, demo-reset y frontend. Faltan: URL, credenciales, guion de la demo, criterios de aceptación con cómo verificarlos y números medidos. |
+| I6 · README final | **HECHO** | Orientado al corrector: URL, credenciales, 7 pruebas con resultado esperado (incluye replay y carga), endpoints, eventos y números medidos en la nube |
 | I7 · Actualizar el white paper | **PENDIENTE** | |
 | B1 · Autenticación | **HECHO** | `da4ecb8` |
 | B2 · Preguntas para jugar | **HECHO** | `c947008`; en Fase 2 se retiraron las respuestas del listado y se agregó el endpoint de corrección |

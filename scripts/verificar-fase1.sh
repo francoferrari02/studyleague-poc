@@ -3,7 +3,7 @@
 #
 #   ./scripts/verificar-fase1.sh
 #
-# Requiere: bash, curl, jq, docker compose y un .env con JWT_SECRET.
+# Requiere: bash, curl, jq y docker compose. El .env es opcional (en local hay valores por defecto).
 # Sale con código distinto de 0 si alguna prueba no se cumple.
 #
 # Orden: la prueba 4 (bajo dominio) corre antes que la 3 (consumidor caído) porque con las
@@ -12,9 +12,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-if [ ! -f .env ]; then echo "Falta .env (cp .env.example .env y completá JWT_SECRET)"; exit 2; fi
-set -a; source .env; set +a
-if [ "${#JWT_SECRET}" -lt 32 ]; then echo "JWT_SECRET en .env tiene que tener al menos 32 caracteres"; exit 2; fi
+if [ -f .env ]; then set -a; source .env; set +a; fi
 for cmd in curl jq docker; do command -v "$cmd" >/dev/null || { echo "Falta $cmd"; exit 2; }; done
 
 API="http://localhost:${API_PORT:-3000}"
@@ -103,11 +101,7 @@ done
 info "particiones: partida.finalizada=$(kafka kafka-get-offsets.sh --topic partida.finalizada | wc -l | tr -d ' ')," \
   "concepto.bajo_dominio=$(kafka kafka-get-offsets.sh --topic concepto.bajo_dominio | wc -l | tr -d ' ')," \
   "partida.finalizada.dlq=$(kafka kafka-get-offsets.sh --topic partida.finalizada.dlq | wc -l | tr -d ' ')"
-if command -v npm >/dev/null && [ -d node_modules ]; then
-  info "seed:ranking: $(npm run -s seed:ranking 2>/dev/null | tail -1)"
-else
-  info "sin Node en el host: se omite seed:ranking (el ranking arranca vacío)"
-fi
+info "seed-ranking: $(docker compose run --rm -T seed-ranking 2>/dev/null | tail -1)"
 
 # ---------------------------------------------------------------------------
 titulo "1. Ranking: una trivia y B4 pasa de pendiente a actualizado en menos de 3 s"

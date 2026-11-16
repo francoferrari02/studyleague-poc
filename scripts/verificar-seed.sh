@@ -9,10 +9,10 @@ comprobar() {
   test "$(docker compose exec -T redis redis-cli ZREVRANK "$CLAVE" alu-01 | tr -d '\r')" = "$esperado"
   test "$(docker compose exec -T redis redis-cli ZSCORE "$CLAVE" alu-01 | tr -d '\r')" = "$puntos"
 }
-npm run seed:ranking
+docker compose run --rm -T seed-ranking
 comprobar 6 1270
-npm run seed:ranking -- --despues
+docker compose run --rm -T seed-ranking --despues
 comprobar 3 2090
-npm run seed:ranking
+docker compose run --rm -T seed-ranking
 comprobar 6 1270
 echo 'OK: Tomás 7º (1270) → 4º (2090); restaurado antes de jugar.'
