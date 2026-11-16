@@ -12,7 +12,7 @@
  * No hace falta bloquear filas entre instancias: la clave es curso_id, así que cada
  * curso cae en una sola partición y lo procesa una sola instancia del grupo.
  */
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import pg from "pg";
 import {
   CONSUMER_GROUPS,
@@ -112,6 +112,17 @@ async function procesar(evento: PartidaFinalizada): Promise<ConceptoEnAlerta[] |
   }
 }
 
+/**
+ * event_id del aviso derivado de la partida que lo disparó y del concepto (UUID versión 5).
+ * Así, si se reprocesa el historial (replay), el mismo cruce de umbral genera el mismo
+ * event_id y notificaciones-consumer lo descarta: el docente no recibe avisos duplicados.
+ */
+function idDelAviso(partidaEventId: string, conceptoId: string): string {
+  const h = createHash("sha1").update(`concepto.bajo_dominio:${partidaEventId}:${conceptoId}`).digest("hex");
+  const variante = ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16);
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${variante}${h.slice(17, 20)}-${h.slice(20, 32)}`;
+}
+
 /** Publica el aviso reintentando: el evento ya quedó marcado como procesado, así que no se vuelve a leer. */
 async function publicarAlerta(alerta: ConceptoBajoDominio) {
   for (let intento = 1; ; intento++) {
@@ -161,7 +172,7 @@ await crearConsumidor({
     // 4. Después del COMMIT: un concepto.bajo_dominio por cada concepto que cruzó el umbral.
     for (const c of conceptosEnAlerta) {
       const alerta: ConceptoBajoDominio = {
-        event_id: randomUUID(),
+        event_id: idDelAviso(evento.event_id, c.concepto_id),
         tipo: "concepto.bajo_dominio",
         version: 1,
         ocurrido_en: new Date().toISOString(),
