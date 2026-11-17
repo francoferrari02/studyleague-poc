@@ -87,8 +87,9 @@ ENV
   fi
 
   # Caddy se reinicia para tomar un Caddyfile nuevo (rsync reemplaza el archivo montado).
+  # Las herramientas (perfil tools) no se reconstruyen con `up --build`: se construyen aparte.
   echo "Construyendo y levantando (la primera vez tarda ~10 minutos)..."
-  ssh "$USUARIO@$host" "cd $DIR_REMOTO && docker compose up -d --build --remove-orphans && docker compose restart caddy >/dev/null && docker compose ps"
+  ssh "$USUARIO@$host" "cd $DIR_REMOTO && docker compose up -d --build --remove-orphans && docker compose --profile tools build seed-ranking simulador >/dev/null && docker compose restart caddy >/dev/null && docker compose ps"
   echo
   echo "Listo: https://$host  (Swagger: /api/docs · Kafka UI: /kafka-ui)"
   echo "Para no gastar crédito: ./deploy/azure.sh down"

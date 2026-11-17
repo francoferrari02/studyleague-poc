@@ -22,7 +22,8 @@ cat scripts/demo-reset.sql scripts/analitica-base.sql \
   | docker compose exec -T postgres sh -c 'psql -q -v ON_ERROR_STOP=1 -1 -f - -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 # Redis es exclusivo de esta PoC: ranking, rachas, idempotencia y métricas.
 docker compose exec -T redis redis-cli FLUSHDB
-docker compose run --rm -T seed-ranking
+# --build: seed-ranking está en el perfil tools y `up --build` no lo reconstruye.
+docker compose run --rm -T --build seed-ranking
 docker compose start "${servicios[@]}" >/dev/null
 trap - EXIT
 docker compose exec -T api node --input-type=module -e 'for(let i=0;;i++){try{const r=await fetch("http://localhost:3000/salud");if(r.ok)break}catch{}if(i===50)throw Error("La API no quedó lista tras el reset");await new Promise(r=>setTimeout(r,200))}'
