@@ -23,7 +23,7 @@ trap 'rm -f "$STATS"; kill "$MUESTREO" 2>/dev/null || true' EXIT
 sql() { docker compose exec -T postgres sh -c 'psql -At -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "$1"' sql "$1"; }
 lag_analitica() {
   docker compose exec -T kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group analitica 2>/dev/null \
-    | awk '$2=="partida.finalizada" { if ($6 ~ /^[0-9]+$/) s += $6; else s += 1000000 } END { print s + 0 }'
+    | awk '$2=="partida.finalizada" { if ($6 ~ /^[0-9]+$/) s += $6; else if ($5 ~ /^[0-9]+$/) s += $5; else s += 1000000 } END { print s + 0 }'
 }
 
 docker compose --profile tools build simulador >/dev/null 2>&1

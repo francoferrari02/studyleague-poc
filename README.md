@@ -155,6 +155,8 @@ Medido en la VM de Azure (2 vCPU, 4 GB), con el simulador corriendo en la misma 
 | Sin pérdida | Todas las partidas en la analítica | 1.000 guardadas, 1.000 procesadas, outbox vacío |
 | 3.000 partidas en 60 s (el triple) | Margen | 0 fallas · p95 52 ms · nada perdido |
 | Replay de 4.000 eventos | Proyección idéntica | 36 s, analítica idéntica, 0 avisos duplicados |
+| Analítica caída durante 1.000 partidas | Al volver, procesa todo | 1.000 pendientes procesadas en 23 s (lag de 1.000 a 0) |
+| Arranque en frío (minutos después de prender la VM) | p95 < 3 s | p95 852 ms · máx. 4,2 s; con el sistema caliente, p95 29 ms |
 | Recursos con 1.000 partidas | Entrar en 4 GB | Kafka ~630 MiB; cada servicio Node < 100 MiB |
 
 ## API y eventos

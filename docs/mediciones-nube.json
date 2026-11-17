@@ -160,5 +160,41 @@
     "avisos_antes": 7,
     "avisos_despues": 7,
     "comando": "./deploy/azure.sh ssh bash scripts/replay.sh"
+  },
+  "recuperacion_analitica": {
+    "fecha": "2026-11-17",
+    "escenario": "analitica-consumer detenido mientras se juegan 1.000 partidas en 60 s; al reiniciarlo se mide cuánto tarda el lag del grupo en volver a 0",
+    "lag_al_reiniciar": 1000,
+    "segundos_hasta_lag_0": 23.1,
+    "procesadas_por_analitica": 1000,
+    "nota": "Cota superior: el lag se consulta con kafka-consumer-groups.sh, que tarda unos segundos por consulta. Corrida a los pocos minutos de prender la VM (en frío): en ese arranque el p95 partida→ranking fue de 852 ms (máx. 4.176 ms), dentro del SLO.",
+    "simulador": {
+      "enviadas": 1000,
+      "fallas": 0,
+      "segundos": 60.008,
+      "curso": "bio-2b",
+      "bajo_dominio": null,
+      "sin_actualizar_en_ranking": 0,
+      "metricas": {
+        "muestras": 1000,
+        "p50_ms": 21,
+        "p95_ms": 852,
+        "max_ms": 4176
+      }
+    }
+  },
+  "repeticion_en_caliente_1000_en_60s": {
+    "fecha": "2026-11-17",
+    "fallas": 0,
+    "metricas": {
+      "p50_ms": 15,
+      "p95_ms": 29,
+      "max_ms": 54
+    },
+    "sin_perdida": {
+      "partidas_guardadas": 1000,
+      "procesadas_por_analitica": 1000,
+      "outbox_pendiente": 0
+    }
   }
 }

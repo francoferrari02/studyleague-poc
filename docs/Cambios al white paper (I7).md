@@ -76,20 +76,17 @@ Es lo más importante que falta: hoy la sección 7 analiza, pero no muestra ning
 | Analítica sin pérdida | Todas procesadas | 1.000 guardadas y 1.000 procesadas; outbox vacío |
 | Margen: 3.000 partidas en 60 s | — | Sin errores · p95 52 ms |
 | Reproceso: borrar la analítica y releer el historial | Resultado idéntico | 4.000 eventos en 36 s; idéntica; sin avisos duplicados |
+| Confiabilidad: analítica caída durante 1.000 partidas | Al volver, procesa todo lo pendiente | 1.000 de 1.000 procesadas en 23 s |
 
 Una oración de interpretación debajo de la tabla:
 
 > El objetivo de latencia se cumple con dos órdenes de magnitud de margen, y el sistema soportó el triple del pico supuesto en una máquina chica. El reproceso confirma el motivo de elegir Kafka: la analítica se reconstruye sin que los alumnos vuelvan a jugar.
 
-**Falta medir: la recuperación de la analítica.** Es el ASR de confiabilidad. Hay que medir cuánto tarda el lag en volver a 0 después de reiniciar la analítica caída. Requiere la VM prendida (`./deploy/azure.sh up` o `az vm start`):
+**Recuperación de la analítica (ya medida).** Con `analitica-consumer` detenido se jugaron 1.000 partidas. Al reiniciarlo, procesó las 1.000 pendientes en 23 s. Es una cota superior, porque el lag se consulta cada pocos segundos.
 
-```bash
-./deploy/azure.sh ssh 'docker compose stop analitica-consumer && docker compose run --rm -T simulador --alumnos 1000 --segundos 60 | tail -1 && date +%s && docker compose start analitica-consumer'
-# Después, mirar en Kafka UI (/kafka-ui) o con kafka-consumer-groups.sh cuándo el lag del grupo "analitica" llega a 0.
-./deploy/azure.sh ssh bash scripts/demo-reset.sh
-```
-
-Si no da el tiempo, el replay (4.000 eventos en 36 s) ya muestra la velocidad de puesta al día: se puede citar ese número como cota.
+**Arranque en frío.** Si la carga llega minutos después de prender la VM, la latencia sube: p95 de 852 ms y máximo de 4,2 s. Sigue dentro del SLO en el p95, pero el máximo lo supera. Con el sistema caliente vuelve a 29 ms. Dos consecuencias:
+- En el documento conviene mencionarlo como observación honesta.
+- **Para la demo, prender la VM con tiempo, no justo antes.**
 
 ### Árbol de utilidad
 Sin cambios. Opcionalmente, agregar «(medido: p95 34 ms)» después del SLO.

@@ -40,9 +40,10 @@ tabla() {
 # Huella de toda la proyección (todos los cursos), para comparar antes y después.
 huella() { psql -At -c "SELECT md5(coalesce(string_agg(curso_id||':'||concepto_id||':'||respuestas||':'||aciertos||':'||alerta_enviada, ',' ORDER BY curso_id, concepto_id), '')) FROM analitica_concepto"; }
 avisos() { psql -At -c "SELECT count(*) FROM notificaciones"; }
+# Una partición sin offset confirmado ("-") tiene pendiente todo su log; vacía, 0.
 lag() {
   kafka $KBIN/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group $GRUPO 2>/dev/null \
-    | awk -v t=$TOPICO '$2==t { if ($6 ~ /^[0-9]+$/) s += $6; else s += 1000000 } END { print s + 0 }'
+    | awk -v t=$TOPICO '$2==t { if ($6 ~ /^[0-9]+$/) s += $6; else if ($5 ~ /^[0-9]+$/) s += $5; else s += 1000000 } END { print s + 0 }'
 }
 eventos_en_kafka() {
   local fin inicio
