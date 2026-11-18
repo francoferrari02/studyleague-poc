@@ -166,6 +166,8 @@ Medido en la VM de Azure (2 vCPU, 4 GB), con el simulador corriendo en la misma 
 
 En Swagger, primero hacé `POST /auth/login` con `{ "usuario", "clave" }` y pegá el `token` en **Authorize**. Todas las rutas piden `Authorization: Bearer <token>`, salvo `/health`, `/salud`, `/docs` y `/auth/*`. Sin token responden 401 y sin permiso, 403.
 
+Los tres endpoints de login comparten un límite de 10 intentos fallidos por IP y usuario cada 5 minutos; después responden 429 con `Retry-After`. El contador vive en la memoria de la única instancia de API de esta PoC.
+
 | Método y ruta | Qué hace |
 | --- | --- |
 | `POST /auth/login` | Ingreso de alumno o docente. Devuelve un JWT de 12 h. |
@@ -259,4 +261,5 @@ npm run dev -w apps/web
 - **Una sola VM.** Todo comparte 2 vCPU. Sirve para la demo y para medir el ASR, no para alta disponibilidad.
 - **El snapshot del replay es fijo.** Los contadores base de la demo (`scripts/analitica-base.sql`) representan el historial anterior a la retención. En producción, el snapshot se generaría periódicamente.
 - **Corrección sin estado.** Un alumno autenticado puede consultar la corrección de una pregunta sin haberla jugado. Se mitigaría con una sesión de partida en el servidor.
+- **Bonus de rapidez.** La API corrige los aciertos, pero el cliente declara `tiempo_ms`; un cliente modificado puede inflar el bonus. Para un ranking competitivo real habría que registrar el tiempo de cada respuesta en el servidor.
 - **Solo está la trivia.** Los demás minijuegos, el alta de cursos y la carga de contenido tienen pantallas de marcador: no son parte de lo que valida la PoC.
