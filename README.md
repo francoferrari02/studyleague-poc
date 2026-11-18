@@ -203,10 +203,10 @@ Corre en una VM de Azure for Students: Chile Central, Standard_B2als_v2 (2 vCPU,
 **URL:** https://studyleague-959617.chilecentral.cloudapp.azure.com
 
 **Credenciales:** el acceso tiene dos niveles.
-1. Al entrar, el navegador pide usuario y clave (basic auth): usuario `catedra`. **La clave se entrega por separado y no está en el repositorio.** Esto protege la web, Swagger (`/api/docs`) y Kafka UI (`/kafka-ui`).
-2. Después se entra a la app con los [usuarios de prueba](#usuarios-de-prueba). La API (`/api/*`) se protege con sus propios tokens JWT.
+1. Al entrar, el navegador pide usuario y clave (basic auth): usuario `catedra`. **La clave se entrega por separado y no está en el repositorio.** Esto protege la web, Swagger (`/api/docs`), Kafka UI (`/kafka-ui`) y el login de la API (`/api/auth/*`).
+2. Después se entra a la app con los [usuarios de prueba](#usuarios-de-prueba). Las demás rutas de la API (`/api/*`) se protegen con sus propios tokens JWT.
 
-**Alcance del acceso:** Basic Auth no protege `/api/*`, porque ese mismo header lleva el token JWT. Los usuarios y claves de demo son públicos y los datos cargados son ficticios; por eso esta instancia debe tratarse como una demo pública. La API permite CORS solo desde los orígenes indicados por `CORS_ORIGINS` (por defecto, la web local); CORS no reemplaza la autenticación ni restringe clientes fuera del navegador.
+**Alcance del acceso:** el login necesita Basic Auth, pero las demás rutas `/api/*` usan el token JWT en ese mismo header. Los usuarios y claves de demo son públicos y los datos cargados son ficticios; por eso esta instancia sigue siendo una demo, no un sistema con datos reales. La API permite CORS solo desde los orígenes indicados por `CORS_ORIGINS` (por defecto, la web local); CORS no reemplaza la autenticación ni restringe clientes fuera del navegador.
 
 `deploy/azure.sh` automatiza el deploy. Requiere Azure CLI con `az login`, `ssh` y `rsync`. Crea la VM, copia el clon local, genera en la VM un `.env` con secretos propios y levanta todo:
 

@@ -4,10 +4,10 @@
 #
 # Credenciales en dos niveles:
 # - La web, Swagger y Kafka UI quedan detrás de usuario y contraseña (basic auth).
-# - La API (/api/*) NO lleva basic auth: se protege con sus propios tokens JWT, que viajan en
-#   el mismo header Authorization ("Bearer ..."). Si /api tuviera basic auth, cada pedido de la
-#   web con token pisaría las credenciales del navegador y Caddy respondería 401.
-#   Solo quedan públicas las rutas que la API ya deja sin token (/auth/*, /salud, /health).
+# - El login de la API requiere basic auth para que las cuentas públicas de demo
+#   no permitan obtener un JWT sin la credencial entregada a la cátedra.
+# - Las demás rutas /api/* usan JWT en Authorization: Bearer. No llevan basic auth
+#   porque ese header reemplaza las credenciales Basic del navegador.
 
 (credenciales) {
 	basic_auth {
@@ -26,6 +26,12 @@
 	# Swagger UI pide sus archivos con rutas absolutas (/docs/static/..., /docs/json).
 	handle /docs* {
 		import credenciales
+		reverse_proxy api:3000
+	}
+
+	handle /api/auth/* {
+		import credenciales
+		uri strip_prefix /api
 		reverse_proxy api:3000
 	}
 
