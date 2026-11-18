@@ -31,7 +31,7 @@ Estas mejoras no agregan minijuegos ni cambian las reglas de puntaje. El bonus d
 
 ## Estado pendiente de la entrega
 
-1. **Azure no se actualizó con estos commits.** La URL publicada responde y la web de alumno, docente y Kafka UI funcionaron en la auditoría, pero la corrección del outbox de avisos y los cambios posteriores solo se verificaron localmente. Antes de entregar, desplegar `main` y repetir el recorrido y la prueba de aviso en la VM.
+1. **Azure actualizado el 18/11 con `main` (`25e77b7`).** En la VM pasaron `scripts/verificar-outbox-alerta.sh`, `scripts/verificar-api-fase2.mjs` y el límite de logins (10 fallos y luego `429` con `Retry-After`). Caddy responde `401` sin Basic Auth en la web y en `/api/auth/login`. Después de las pruebas se restableció la demo con `scripts/demo-reset.sh`. Falta repetir en el navegador, con la clave de `catedra`, el ingreso de alumno y docente.
 2. **GitHub Actions muestra una X roja por una causa externa al código.** En la [ejecución del commit `ea8a705`](https://github.com/francoferrari02/studyleague-poc/actions/runs/44213355577), GitHub indicó que el job no se inició porque la cuenta está bloqueada por un problema de facturación. Una ejecución verde requerirá resolver ese bloqueo y volver a correr el workflow.
 3. **Entrega a la cátedra:** presentar el PDF final, el enlace al repositorio, la URL de Azure y la credencial de acceso por el canal correspondiente. No guardar la clave de Azure en el repositorio.
 
