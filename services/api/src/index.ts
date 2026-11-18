@@ -15,7 +15,13 @@ import { rutasMetricas } from "./routes/metricas.js";
 
 const app = Fastify({ logger: true });
 
-await app.register(cors, { origin: true });
+// La web publicada usa el mismo origen que la API. Para desarrollo local o un
+// frontend separado, permitir solo los orígenes configurados explícitamente.
+const origenesCors = (process.env.CORS_ORIGINS ?? "http://localhost:5173,http://127.0.0.1:5173")
+  .split(",")
+  .map((origen) => origen.trim())
+  .filter(Boolean);
+await app.register(cors, { origin: origenesCors });
 await app.register(swagger, {
   openapi: {
     info: {

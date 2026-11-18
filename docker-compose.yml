@@ -133,6 +133,7 @@ services:
       # correr la PoC en local con `docker compose up`; en la nube
       # docker-compose.prod.yml exige uno propio en .env.
       JWT_SECRET: ${JWT_SECRET:-solo-local-no-usar-en-la-nube-studyleague-poc}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
     ports:
       - "${API_PORT:-3000}:3000"
 

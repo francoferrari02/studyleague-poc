@@ -183,7 +183,7 @@ En Swagger, primero hacé `POST /auth/login` con `{ "usuario", "clave" }` y peg�
 | Tópico | Particiones | Clave | Lo publica | Lo consumen (grupos) |
 | --- | --- | --- | --- | --- |
 | `partida.finalizada` | 3 | `curso_id` | api (outbox) | `ranking`, `rachas`, `analitica` |
-| `concepto.bajo_dominio` | 1 | `curso_id` | analitica-consumer | `notificaciones` |
+| `concepto.bajo_dominio` | 1 | `curso_id` | api (outbox de analítica) | `notificaciones` |
 | `partida.finalizada.dlq` | 1 | la original | consumidores | inspección en Kafka UI |
 
 La retención es de 7 días. Ejemplo de `partida.finalizada`; el resto de los contratos está en [docs/eventos.md](docs/eventos.md):
@@ -203,6 +203,8 @@ Corre en una VM de Azure for Students: Chile Central, Standard_B2als_v2 (2 vCPU,
 **Credenciales:** el acceso tiene dos niveles.
 1. Al entrar, el navegador pide usuario y clave (basic auth): usuario `catedra`. **La clave se entrega por separado y no está en el repositorio.** Esto protege la web, Swagger (`/api/docs`) y Kafka UI (`/kafka-ui`).
 2. Después se entra a la app con los [usuarios de prueba](#usuarios-de-prueba). La API (`/api/*`) se protege con sus propios tokens JWT.
+
+**Alcance del acceso:** Basic Auth no protege `/api/*`, porque ese mismo header lleva el token JWT. Los usuarios y claves de demo son públicos y los datos cargados son ficticios; por eso esta instancia debe tratarse como una demo pública. La API permite CORS solo desde los orígenes indicados por `CORS_ORIGINS` (por defecto, la web local); CORS no reemplaza la autenticación ni restringe clientes fuera del navegador.
 
 `deploy/azure.sh` automatiza el deploy. Requiere Azure CLI con `az login`, `ssh` y `rsync`. Crea la VM, copia el clon local, genera en la VM un `.env` con secretos propios y levanta todo:
 

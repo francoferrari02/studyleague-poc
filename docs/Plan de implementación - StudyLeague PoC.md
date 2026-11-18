@@ -1,5 +1,10 @@
 # Plan de implementación · StudyLeague PoC
 
+> **Documento histórico (14/11/2026).** Los estados y pendientes de este plan
+> reflejan esa fecha y no describen la versión actual. Para el estado vigente,
+> consultar el [README](../README.md), la [arquitectura](arquitectura.md) y el
+> [white paper final](StudyLeague%20-%20White%20paper%20TP%20Integrador%20Final.pdf).
+
 TP Integrador Final · Ingeniería de Software II · 2.º cuatrimestre 2026
 Equipo: Franco Ferrari, Nicolás Mazzitelli, Mateo Pirola, Nicolás Revale
 
