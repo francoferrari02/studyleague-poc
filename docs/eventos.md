@@ -37,7 +37,7 @@ La arma la API después de corregir las respuestas en el servidor (`correcta` lo
 
 Se publica cuando un concepto suma 10 respuestas o más (`BAJO_DOMINIO_MIN_RESPUESTAS`) con menos del 40 % de aciertos (`BAJO_DOMINIO_UMBRAL`), una sola vez por concepto y curso (`analitica_concepto.alerta_enviada`). Si el concepto vuelve a llegar al 40 % o más, la marca se borra y puede volver a avisar si cae otra vez.
 
-`analitica-consumer` actualiza los contadores, la marca de idempotencia (`eventos_procesados`) y `alerta_enviada` en una sola transacción, y publica el aviso después del `COMMIT`. Un evento que no cumple el contrato, o que referencia datos que no existen (por ejemplo un concepto inexistente), va a `partida.finalizada.dlq`.
+`analitica-consumer` actualiza los contadores, la marca de idempotencia (`eventos_procesados`) y `alerta_enviada`, y guarda el aviso en el outbox en una sola transacción. El publicador de la API lo envía a Kafka; si falla, lo reintenta sin perderlo. Un evento que no cumple el contrato, o que referencia datos que no existen (por ejemplo un concepto inexistente), va a `partida.finalizada.dlq`.
 
 ```json
 {

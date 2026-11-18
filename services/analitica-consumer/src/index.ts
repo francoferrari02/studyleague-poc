@@ -4,7 +4,8 @@
  * y detecta conceptos con bajo dominio: es procesamiento de eventos complejos,
  * porque el patrón surge de correlacionar muchas respuestas de distintos alumnos.
  *
- * Es a la vez consumidor de partida.finalizada y productor de concepto.bajo_dominio.
+ * Consume partida.finalizada y deja concepto.bajo_dominio en el outbox compartido.
+ * El publicador de la API envía los avisos pendientes a Kafka, incluso tras un reinicio.
  * Si se detiene, al volver retoma desde su último offset y no pierde partidas; como
  * la marca de idempotencia (eventos_procesados) se guarda en la misma transacción que
  * los contadores, un evento que se vuelve a leer no se cuenta dos veces.
@@ -40,10 +41,10 @@ interface ConceptoEnAlerta {
 }
 
 /**
- * Procesa el evento en una sola transacción. Devuelve los conceptos que acaban de cruzar
- * el umbral de bajo dominio, o null si el evento ya se había procesado.
+ * Procesa el evento y encola los avisos en la misma transacción. Devuelve el número
+ * de avisos encolados, o null si el evento ya se había procesado.
  */
-async function procesar(evento: PartidaFinalizada): Promise<ConceptoEnAlerta[] | null> {
+async function procesar(evento: PartidaFinalizada): Promise<number | null> {
   // Se agrupa por concepto: el resultado es el mismo que un upsert por respuesta, con menos consultas.
   const porConcepto = new Map<string, { respuestas: number; aciertos: number }>();
   for (const r of evento.respuestas) {
@@ -102,8 +103,29 @@ async function procesar(evento: PartidaFinalizada): Promise<ConceptoEnAlerta[] |
       [evento.curso_id, conceptos, MIN_RESPUESTAS, UMBRAL],
     );
 
+    // La marca de analítica y los avisos quedan atómicamente guardados. Si Kafka o
+    // este proceso se caen, el publicador encuentra las filas pendientes al volver.
+    for (const c of rows) {
+      const alerta: ConceptoBajoDominio = {
+        event_id: idDelAviso(evento.event_id, c.concepto_id),
+        tipo: "concepto.bajo_dominio",
+        version: 1,
+        ocurrido_en: new Date().toISOString(),
+        curso_id: evento.curso_id,
+        concepto_id: c.concepto_id,
+        respuestas_totales: c.respuestas,
+        aciertos: c.aciertos,
+        porcentaje_aciertos: c.aciertos / c.respuestas,
+      };
+      await cliente.query(
+        `INSERT INTO outbox (event_id, topic, clave, payload)
+         VALUES ($1, $2, $3, $4) ON CONFLICT (event_id) DO NOTHING`,
+        [alerta.event_id, TOPICS.CONCEPTO_BAJO_DOMINIO, alerta.curso_id, alerta],
+      );
+    }
+
     await cliente.query("COMMIT");
-    return rows;
+    return rows.length;
   } catch (error) {
     await cliente.query("ROLLBACK").catch(() => {});
     throw error;
@@ -114,29 +136,12 @@ async function procesar(evento: PartidaFinalizada): Promise<ConceptoEnAlerta[] |
 
 /**
  * event_id del aviso derivado de la partida que lo disparó y del concepto (UUID versión 5).
- * Así, si se reprocesa el historial (replay), el mismo cruce de umbral genera el mismo
- * event_id y notificaciones-consumer lo descarta: el docente no recibe avisos duplicados.
+ * Un replay genera el mismo ID; el outbox y notificaciones-consumer evitan duplicados.
  */
 function idDelAviso(partidaEventId: string, conceptoId: string): string {
   const h = createHash("sha1").update(`concepto.bajo_dominio:${partidaEventId}:${conceptoId}`).digest("hex");
   const variante = ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16);
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-5${h.slice(13, 16)}-${variante}${h.slice(17, 20)}-${h.slice(20, 32)}`;
-}
-
-/** Publica el aviso reintentando: el evento ya quedó marcado como procesado, así que no se vuelve a leer. */
-async function publicarAlerta(alerta: ConceptoBajoDominio) {
-  for (let intento = 1; ; intento++) {
-    try {
-      await productor.publicar(TOPICS.CONCEPTO_BAJO_DOMINIO, alerta.curso_id, alerta);
-      return;
-    } catch (error) {
-      if (intento >= 5) {
-        log(SERVICIO, "no se pudo publicar el aviso de bajo dominio", { alerta, error: String(error) });
-        return;
-      }
-      await new Promise((r) => setTimeout(r, 1000 * intento));
-    }
-  }
 }
 
 /** Errores de datos de PostgreSQL (clase 22 y 23, por ejemplo un concepto que no existe): reintentar no sirve. */
@@ -154,9 +159,9 @@ await crearConsumidor({
       return;
     }
 
-    let conceptosEnAlerta: ConceptoEnAlerta[] | null;
+    let avisosEncolados: number | null;
     try {
-      conceptosEnAlerta = await procesar(evento);
+      avisosEncolados = await procesar(evento);
     } catch (error) {
       if (!esErrorDeDatos(error)) throw error; // por ejemplo, PostgreSQL caído: se reintenta el mensaje
       log(SERVICIO, "evento con datos inválidos, a la DLQ", { event_id: evento.event_id, error: String(error) });
@@ -164,37 +169,16 @@ await crearConsumidor({
       return;
     }
 
-    if (conceptosEnAlerta === null) {
+    if (avisosEncolados === null) {
       log(SERVICIO, "evento repetido, se descarta", { event_id: evento.event_id });
       return;
-    }
-
-    // 4. Después del COMMIT: un concepto.bajo_dominio por cada concepto que cruzó el umbral.
-    for (const c of conceptosEnAlerta) {
-      const alerta: ConceptoBajoDominio = {
-        event_id: idDelAviso(evento.event_id, c.concepto_id),
-        tipo: "concepto.bajo_dominio",
-        version: 1,
-        ocurrido_en: new Date().toISOString(),
-        curso_id: evento.curso_id,
-        concepto_id: c.concepto_id,
-        respuestas_totales: c.respuestas,
-        aciertos: c.aciertos,
-        porcentaje_aciertos: c.aciertos / c.respuestas,
-      };
-      await publicarAlerta(alerta);
-      log(SERVICIO, "concepto con bajo dominio", {
-        curso_id: alerta.curso_id,
-        concepto_id: alerta.concepto_id,
-        respuestas: alerta.respuestas_totales,
-        aciertos: alerta.aciertos,
-      });
     }
 
     log(SERVICIO, "partida procesada", {
       event_id: evento.event_id,
       curso_id: evento.curso_id,
       respuestas: evento.respuestas.length,
+      avisos_encolados: avisosEncolados,
       particion: mensaje.partition,
       offset: mensaje.offset,
     });

@@ -3,6 +3,8 @@
 Trabajo Práctico Integrador Final de **Ingeniería de Software II**, ITBA, 2.º cuatrimestre de 2026.
 **Integrantes:** Franco Ferrari, Nicolás Mazzitelli, Mateo Pirola y Nicolás Revale.
 
+[White paper para la entrega](docs/StudyLeague%20-%20White%20paper%20TP%20Integrador%20Final.pdf) · [Versión editable](docs/StudyLeague%20-%20White%20paper%20TP%20Integrador%20Final.docx)
+
 StudyLeague convierte el repaso del contenido de clase en partidas cortas, con un ranking semanal entre compañeros de curso. El docente ve qué conceptos entendió el curso y recibe un aviso cuando alguno queda flojo.
 
 Esta prueba de concepto valida la **arquitectura orientada a eventos con Apache Kafka** que propone el white paper. Cuando un alumno termina una partida, la API publica un único evento `partida.finalizada`. Cuatro servicios lo procesan por su cuenta: el ranking, las rachas, la analítica por concepto y, en cadena, los avisos al docente.
@@ -30,7 +32,7 @@ Alumno ──► API ──(outbox)──► [partida.finalizada] ──┬─�
             ▼                 3 particiones          └──► analitica-consumer ───► PostgreSQL (aciertos por concepto)
         PostgreSQL                                              │
                                                                 ▼
-                                       [concepto.bajo_dominio] ──► notificaciones-consumer ──► aviso al docente
+                               (outbox)──► [concepto.bajo_dominio] ──► notificaciones-consumer ──► aviso al docente
 ```
 
 | Servicio | Qué hace |
@@ -38,7 +40,7 @@ Alumno ──► API ──(outbox)──► [partida.finalizada] ──┬─�
 | `api` | Fastify + Swagger. Corrige la partida en el servidor y la guarda junto con su evento en la tabla `outbox`, en **una sola transacción**. Un publicador la manda a Kafka. Si Kafka está caído, la partida igual se guarda (202) y se publica después. |
 | `ranking-consumer` | Suma los puntos al ranking semanal del curso (sorted set de Redis). Mide la latencia partida → ranking. |
 | `rachas-consumer` | Cuenta los días de juego seguidos de cada alumno, según los días de juego del curso. |
-| `analitica-consumer` | Acumula aciertos por concepto. Si un concepto cruza el umbral, publica `concepto.bajo_dominio`. |
+| `analitica-consumer` | Acumula aciertos por concepto. Si un concepto cruza el umbral, guarda `concepto.bajo_dominio` en el outbox en la misma transacción; el publicador de la API lo envía a Kafka y reintenta si falla. |
 | `notificaciones-consumer` | Crea el aviso para el docente del curso. |
 | `web` | React: app del alumno (`/alumno`, móvil) y web del docente (`/docente`, escritorio). |
 | `kafka`, `kafka-init`, `kafka-ui` | Kafka 4.1 en modo KRaft (un broker), creación de tópicos y monitoreo. |
@@ -48,6 +50,7 @@ No son microservicios: es una API más consumidores livianos que comparten los c
 
 **Garantías.**
 - Entrega al menos una vez. Cada consumidor es **idempotente por `event_id`**: en Redis con un script Lua atómico, y en PostgreSQL con `eventos_procesados` en la misma transacción.
+- Los avisos de bajo dominio también usan el outbox: si falla su publicación, quedan pendientes y se envían al volver la API o Kafka.
 - El orden se respeta por curso, porque la clave del evento es `curso_id`.
 - Los eventos llevan solo identificadores, nunca nombres: los usuarios son menores.
 
@@ -228,6 +231,7 @@ npm run dev -w apps/web
 | --- | --- |
 | `bash scripts/verificar-fase1.sh` | Los cuatro criterios de aceptación, el outbox con Kafka caído, la seguridad y un pico de 200 alumnos. Borra los volúmenes. |
 | `bash scripts/verificar-resiliencia.sh` | Que la API arranque y guarde partidas con Kafka detenido y las publique al volver. |
+| `bash scripts/verificar-outbox-alerta.sh` | Detiene la API, provoca una alerta y comprueba que queda pendiente en el outbox y llega una vez al reiniciar. Restablece los datos de demo al inicio. |
 | `bash scripts/verificar-seed.sh` | El seed del ranking: puesto y puntos de Tomás antes y después de jugar. |
 | `node scripts/verificar-api-fase2.mjs` | Las rutas de la fase 2: permisos, contratos y datos. |
 | `node scripts/verificar-fase2.mjs`, `verificar-alerta-fase2.mjs`, `verificar-estados-fase2.mjs` | Recorridos de punta a punta en Chrome. Necesitan Node 22 y Chrome. |
