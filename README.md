@@ -3,10 +3,6 @@
 Trabajo Práctico Integrador Final de **Ingeniería de Software II**, ITBA, 2.º cuatrimestre de 2026.
 **Integrantes:** Franco Ferrari, Nicolás Mazzitelli, Mateo Pirola y Nicolás Revale.
 
-[White paper para la entrega](docs/StudyLeague%20-%20White%20paper%20TP%20Integrador%20Final.pdf) · [Versión editable](docs/StudyLeague%20-%20White%20paper%20TP%20Integrador%20Final.docx)
-
-[Registro de cambios y pendientes de la entrega](docs/registro-de-cambios-para-entrega.md)
-
 StudyLeague convierte el repaso del contenido de clase en partidas cortas, con un ranking semanal entre compañeros de curso. El docente ve qué conceptos entendió el curso y recibe un aviso cuando alguno queda flojo.
 
 Esta prueba de concepto valida la **arquitectura orientada a eventos con Apache Kafka** que propone el white paper. Cuando un alumno termina una partida, la API publica un único evento `partida.finalizada`. Cuatro servicios lo procesan por su cuenta: el ranking, las rachas, la analítica por concepto y, en cadena, los avisos al docente.

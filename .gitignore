@@ -8,8 +8,6 @@ dist/
 coverage/
 *.log
 
-.tmp-mockups/
-
 .npm-cache/
 .verificacion/
 
