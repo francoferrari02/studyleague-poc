@@ -34,6 +34,12 @@ export interface PartidaFinalizada extends EventoBase<"partida.finalizada"> {
   alumno_id: string;
   minijuego: Minijuego;
   puntaje: number;
+  /**
+   * false en una partida de práctica (no es la primera que el alumno empezó hoy en el curso):
+   * ranking-consumer no suma sus puntos; rachas y analítica la procesan igual.
+   * Campo opcional agregado sin cambiar la versión: si falta (eventos anteriores), vale true.
+   */
+  cuenta_para_ranking?: boolean;
   respuestas: RespuestaEvento[];
 }
 

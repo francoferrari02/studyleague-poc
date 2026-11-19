@@ -26,7 +26,9 @@ try {
  const alumno=(await peticion('/auth/alumno',{usuario:'tomas',clave:'alumno123'})).body;
  // Soluciones exclusivamente internas de la prueba, fuera de la API de preguntas.
  const soluciones=JSON.parse(execFileSync('docker',['compose','exec','-T','postgres','sh','-c',`psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tAc "SELECT jsonb_object_agg(id,respuesta) FROM preguntas WHERE minijuego='trivia'"`],{encoding:'utf8'}));
- const preguntas=(await peticion('/cursos/bio-2b/partida-nueva?minijuego=trivia',null,alumno.token)).body.preguntas;
+ // Con la docente: si lo pidiera Tomás, abriría su partida del día y la que juega abajo sería de práctica.
+ const docente=(await peticion('/auth/docente',{usuario:'laura.gomez',clave:'docente123'})).body;
+ const preguntas=(await peticion('/cursos/bio-2b/partida-nueva?minijuego=trivia',null,docente.token)).body.preguntas;
  if(preguntas.some(p=>'respuesta_correcta' in p || 'respuesta' in p || 'explicacion' in p))throw Error('B2 revela soluciones');
  const fallar=p=>p.concepto_id==='organelas';
  const muestras=[];

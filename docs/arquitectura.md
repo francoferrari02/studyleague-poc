@@ -47,5 +47,6 @@ El orden descrito aplica al publicador único de esta PoC. Varias instancias con
 
 ## Limitaciones conocidas
 
-- Un alumno autenticado puede consultar la corrección de preguntas sin haber jugado. La ruta stateless valida inscripción, curso y trivia habilitada, y limita consultas por alumno en memoria; no acredita una partida jugada.
-- Mitigación futura: sesión de partida en el servidor (partida iniciada, orden y tiempos de preguntas, revelación solo tras responder) o validación contra una respuesta ya registrada.
+- **Sesión de partida.** `GET /cursos/:id/partida-nueva` devuelve una sesión firmada con HMAC (no es un JWT de acceso) que fija alumno, curso, preguntas asignadas, vencimiento (2 h) y si la partida suma al ranking. La corrección por pregunta y `POST /partidas` la exigen: no se pueden elegir preguntas ni mandar de más, y la primera respuesta corregida de cada pregunta queda en Redis, así que no se puede cambiar después de ver el feedback. Solo la primera partida que el alumno empieza en el día y el curso suma al ranking (marca `SET NX` en Redis al repartir las preguntas); las demás viajan con `cuenta_para_ranking: false`.
+- Queda abierto: un alumno puede ver las correcciones de una partida de práctica (no suman puntos, pero sí cuentan en la analítica) y el cliente declara `tiempo_ms` (hasta 20 puntos de bonus por pregunta). Cerrarlo del todo requiere registrar en el servidor cuándo se muestra y cuándo se responde cada pregunta.
+- **Límite de login.** Contadores en Redis por IP y usuario (10 fallos) y por IP (100), ventanas de 5 minutos. La API usa `trustProxy` solo para direcciones locales y privadas, así `request.ip` es la IP del usuario que informa Caddy y no la del proxy. Si Redis no responde, el login sigue funcionando sin límite.

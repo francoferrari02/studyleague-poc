@@ -13,7 +13,11 @@ import { rutasSalud } from "./routes/salud.js";
 import { rutasDocentes } from "./routes/docentes.js";
 import { rutasMetricas } from "./routes/metricas.js";
 
-const app = Fastify({ logger: true });
+// La API corre detrás de un proxy (Caddy en la nube, nginx de la web en local) dentro de la red de
+// Docker. Se confía en X-Forwarded-For solo si el pedido llega desde una IP privada o local, así
+// request.ip es la IP real del usuario (la usa el límite de intentos de login). Nadie desde
+// internet llega directo a la API: en la nube su puerto no se publica.
+const app = Fastify({ logger: true, trustProxy: process.env.TRUST_PROXY ?? "loopback,uniquelocal" });
 
 // La web publicada usa el mismo origen que la API. Para desarrollo local o un
 // frontend separado, permitir solo los orígenes configurados explícitamente.

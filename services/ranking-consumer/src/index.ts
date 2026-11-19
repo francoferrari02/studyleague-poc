@@ -27,17 +27,20 @@ const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379");
 redis.defineCommand("sumarSiEsNuevo", {
   numberOfKeys: 2,
   // KEYS[1] = procesado:ranking:<event_id>, KEYS[2] = ranking:<curso>:<semana>
-  // ARGV[1] = TTL en segundos, ARGV[2] = puntaje, ARGV[3] = alumno_id
+  // ARGV[1] = TTL en segundos, ARGV[2] = puntaje, ARGV[3] = alumno_id,
+  // ARGV[4] = "1" si suma al ranking o "practica" si no (queda como valor de la marca: lo lee la API en B4)
   lua: `
-    if redis.call("SET", KEYS[1], "1", "EX", ARGV[1], "NX") then
-      redis.call("ZINCRBY", KEYS[2], ARGV[2], ARGV[3])
+    if redis.call("SET", KEYS[1], ARGV[4], "EX", ARGV[1], "NX") then
+      if ARGV[4] == "1" then
+        redis.call("ZINCRBY", KEYS[2], ARGV[2], ARGV[3])
+      end
       return 1
     end
     return 0`,
 });
 declare module "ioredis" {
   interface RedisCommander<Context> {
-    sumarSiEsNuevo(procesado: string, ranking: string, ttlS: number, puntaje: number, alumnoId: string): Result<number, Context>;
+    sumarSiEsNuevo(procesado: string, ranking: string, ttlS: number, puntaje: number, alumnoId: string, marca: string): Result<number, Context>;
   }
 }
 const dlq = await crearProductor(SERVICIO);
@@ -59,6 +62,9 @@ await crearConsumidor({
 
     // Marca de procesado y suma de puntos en un solo paso atómico: si el proceso se corta
     // en el medio no queda el evento marcado sin sus puntos, y quien ve la marca (B4) ya ve el puntaje.
+    // Una partida de práctica solo deja la marca: este consumidor decide qué hacer con el evento,
+    // mientras rachas y analítica lo procesan igual.
+    const cuenta = evento.cuenta_para_ranking !== false;
     const semana = semanaIso(new Date(evento.ocurrido_en));
     const nuevo = await redis.sumarSiEsNuevo(
       claveProcesado(evento.event_id),
@@ -66,6 +72,7 @@ await crearConsumidor({
       TTL_IDEMPOTENCIA_S,
       evento.puntaje,
       evento.alumno_id,
+      cuenta ? "1" : "practica",
     );
     if (nuevo === 0) {
       log(SERVICIO, "evento repetido, se descarta", { event_id: evento.event_id });
@@ -77,7 +84,8 @@ await crearConsumidor({
     log(SERVICIO, "ranking actualizado", {
       curso_id: evento.curso_id,
       alumno_id: evento.alumno_id,
-      puntaje: evento.puntaje,
+      puntaje: cuenta ? evento.puntaje : 0,
+      ...(cuenta ? {} : { practica: true }),
       particion: mensaje.partition,
       latencia_ms: latenciaMs,
     });

@@ -16,6 +16,8 @@ Retención: `RETENCION_HORAS` (168 h = 7 días). La auto-creación de tópicos e
 
 La arma la API después de corregir las respuestas en el servidor (`correcta` lo decide la API, no el cliente). Se guarda en la tabla `outbox` en la misma transacción que la partida y la publica el publicador del outbox. Lo que respondió el alumno (`respuesta_dada`) queda en PostgreSQL y no viaja en el evento.
 
+`cuenta_para_ranking` es `false` en una partida de práctica: solo la primera partida que el alumno empieza en el día (hora de Argentina) en el curso suma al ranking. La API lo decide al repartir las preguntas y lo firma en la sesión de la partida. `ranking-consumer` marca el evento como procesado sin sumar puntos; `rachas` y `analitica` lo procesan igual. Es un campo opcional agregado sin cambiar `version`: si falta (eventos anteriores), vale `true`.
+
 ```json
 {
   "event_id": "5f0c7a1e-2b0a-4f3e-9a51-8f2a0f1d6c11",
@@ -27,6 +29,7 @@ La arma la API después de corregir las respuestas en el servidor (`correcta` lo
   "alumno_id": "alu-01",
   "minijuego": "trivia",
   "puntaje": 820,
+  "cuenta_para_ranking": true,
   "respuestas": [
     { "pregunta_id": "mitosis-p1", "concepto_id": "mitosis", "correcta": false, "tiempo_ms": 6400 }
   ]

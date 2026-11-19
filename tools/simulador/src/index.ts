@@ -11,8 +11,9 @@
  *   --bajo-dominio ID  hace que casi todos fallen ese concepto (para la demo del aviso al docente)
  *
  * Cada partida se juega como en la app: el alumno inicia sesión (alu-01 … alu-30, clave alumno123),
- * pide las preguntas (GET /cursos/:id/partida-nueva) y manda lo que respondió (respuesta_dada);
- * la API corrige. Al final espera a que el ranking procese todas las partidas e imprime GET /metricas.
+ * pide las preguntas y la sesión de la partida (GET /cursos/:id/partida-nueva) y manda lo que respondió
+ * (respuesta_dada); la API corrige. Solo la primera partida del día de cada alumno suma al ranking: con más
+ * partidas que alumnos, el resto son de práctica (llegan igual a la analítica). Al final espera a que el ranking procese todas las partidas e imprime GET /metricas.
  * Sale con código 1 si alguna partida falló o no llegó al ranking.
  */
 import pg from "pg";
@@ -101,10 +102,10 @@ await Promise.all(
 // 2. Jugar N partidas repartidas en la ventana de tiempo.
 async function jugar(n: number) {
   const token = tokens.get(alumnos[n % alumnos.length])!;
-  const { preguntas } = await pedir<{ preguntas: Pregunta[] }>(`/cursos/${CURSO}/partida-nueva?minijuego=${MINIJUEGO}`, { token });
+  const { preguntas, sesion } = await pedir<{ preguntas: Pregunta[]; sesion: string }>(`/cursos/${CURSO}/partida-nueva?minijuego=${MINIJUEGO}`, { token });
   const r = await pedir<{ partida_id: string }>("/partidas", {
     token,
-    cuerpo: { curso_id: CURSO, minijuego: MINIJUEGO, respuestas: preguntas.map(responder) },
+    cuerpo: { sesion, curso_id: CURSO, minijuego: MINIJUEGO, respuestas: preguntas.map(responder) },
   });
   return { partida_id: r.partida_id, token };
 }

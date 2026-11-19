@@ -93,24 +93,34 @@ Para apagar todo, `docker compose down`. Para borrar también los datos, `docker
 
 Antes de empezar, corré `bash scripts/demo-reset.sh`. En la nube es `./deploy/azure.sh ssh bash scripts/demo-reset.sh`.
 
+**El reset va el mismo día de la demo, justo antes y después de cualquier ensayo.** El ranking es semanal y la racha de Tomás se calcula desde la fecha del reset: un reset de otra semana deja el ranking vacío y la racha en 0. Además, el reset habilita de nuevo la partida del día de Tomás (ver paso 2).
+
+Para mostrarlo en vivo:
+- Abrí a Tomás y a Laura en ventanas separadas (una normal y otra de incógnito): la sesión se guarda en el navegador y una pisa a la otra si comparten ventana.
+- En la nube, si la VM estaba apagada, jugá una partida para calentarla antes del reset: la primera después de prenderla tarda más (ver [resultados](#resultados-medidos-en-la-nube)).
+- Escribí las claves con cuidado: 10 fallos seguidos bloquean ese usuario en esa red durante 5 minutos.
+- La pantalla «Mi progreso» del alumno es un marcador: no forma parte de la demo.
+
 **1. Estado inicial.**
 - Como `tomas`: Biología · 2.º B, puesto 7.º con 1.270 puntos y racha de 4 días.
 - Como `laura.gomez`, en la analítica del curso: Mitosis 6/18 (33 %) con aviso y Organelas 14/30 (47 %) sin aviso. Los demás conceptos están entre 55 % y 82 %.
 - En notificaciones, Laura tiene un aviso por Mitosis.
 
 **2. El puntaje impacta en el ranking al instante (criterio 1).**
-- Como Tomás, jugá una trivia. Al terminar, la pantalla de resultado muestra el puntaje y el **puesto nuevo** en menos de un segundo. Una buena partida lo sube al 4.º o 5.º puesto.
-- Si hoy es día de juego del curso (lunes, miércoles o viernes), la racha pasa a 5.
+- Como Tomás, jugá una trivia. Al terminar, la pantalla de resultado muestra el puntaje y el **puesto nuevo** en menos de un segundo. Con 6 o 7 respuestas correctas sube al 5.º o 4.º puesto; con las 10, al 2.º.
+- **Solo la primera partida que el alumno empieza en el día suma al ranking del curso.** Las siguientes son de práctica: la pantalla dice «Partida de práctica», el puesto no cambia y las respuestas igual llegan a la analítica. Por eso, si ensayaste, volvé a correr `demo-reset` antes de mostrarlo.
+- Si hoy es día de juego del curso (lunes, miércoles o viernes), la racha pasa a 5. Otro día (por ejemplo, un jueves) se puede jugar igual: el inicio dice «¿Repasamos un poco?», la partida suma al ranking y la racha queda en 4.
 - `GET /metricas` devuelve la latencia partida → ranking (p50, p95, máximo).
 
 **3. Aviso en vivo al docente (criterio 4).** Con las notificaciones de Laura abiertas, corré:
 
 ```bash
-docker compose run --rm simulador --alumnos 4 --segundos 0 --bajo-dominio organelas
+docker compose run --rm simulador --alumnos 5 --segundos 0 --bajo-dominio organelas
 ```
 
-- Organelas baja del 40 % en la tercera partida (14/36).
-- En segundos le llega a Laura el aviso «Organelas tiene bajo dominio», sin recargar la página.
+- Cada partida simulada falla las dos preguntas de Organelas. Organelas baja del 40 % entre la segunda y la quinta partida, según cuántas de Organelas acertó Tomás en el paso 2 (con las dos bien, en la quinta: 16/42). Si se corre antes del paso 2, baja en la tercera (14/36).
+- El primer alumno simulado es Tomás (`alu-01`). Si ya jugó en el paso 2, esa partida es de práctica: no cambia su puesto, pero sí cuenta para la analítica.
+- En unos segundos le llega a Laura el aviso «Organelas tiene bajo dominio», sin recargar la página (la web consulta los avisos cada 5 s).
 - En Kafka UI aparece el evento en `concepto.bajo_dominio`.
 
 **4. Un consumidor caído no pierde partidas (criterio 2 y desacoplamiento).**
@@ -118,7 +128,7 @@ docker compose run --rm simulador --alumnos 4 --segundos 0 --bajo-dominio organe
 ```bash
 docker compose stop analitica-consumer notificaciones-consumer
 docker compose run --rm simulador --alumnos 30        # los alumnos siguen jugando sin errores
-# Kafka UI: el lag del grupo "analitica" crece; el ranking se sigue actualizando
+# Kafka UI: el lag del grupo "analitica" crece; el ranking se sigue procesando
 docker compose start analitica-consumer notificaciones-consumer
 ```
 
@@ -147,7 +157,7 @@ El script hace esto:
 bash scripts/medir-carga.sh 1000 60     # 1.000 partidas en 60 s, como el ASR
 ```
 
-Imprime un JSON con las fallas, la latencia partida → ranking, las partidas guardadas contra las procesadas por la analítica, y el pico de CPU y memoria por contenedor. Después corré `demo-reset`.
+Imprime un JSON con las fallas, la latencia partida → ranking, las partidas guardadas contra las procesadas por la analítica, y el pico de CPU y memoria por contenedor. Después corré `demo-reset`. Tarda más de un minuto y deja los datos alterados: en la defensa conviene mostrar los resultados ya medidos (tabla de abajo) en lugar de correrlo en vivo.
 
 ## Resultados medidos en la nube
 
@@ -168,14 +178,15 @@ Medido en la VM de Azure (2 vCPU, 4 GB), con el simulador corriendo en la misma 
 
 En Swagger, primero hacé `POST /auth/login` con `{ "usuario", "clave" }` y pegá el `token` en **Authorize**. Todas las rutas piden `Authorization: Bearer <token>`, salvo `/health`, `/salud`, `/docs` y `/auth/*`. Sin token responden 401 y sin permiso, 403.
 
-Los tres endpoints de login comparten un límite de 10 intentos fallidos por IP y usuario cada 5 minutos; después responden 429 con `Retry-After`. El contador vive en la memoria de la única instancia de API de esta PoC.
+Los tres endpoints de login comparten un límite de intentos fallidos con dos contadores en Redis, por ventanas de 5 minutos: 10 fallos para un mismo usuario desde una misma IP y 100 fallos desde una misma IP en total (alto a propósito, porque un aula entera puede salir a internet con la misma IP). Al pasarlo responden 429 con `Retry-After`. La IP es la del usuario: la API confía en `X-Forwarded-For` solo si el pedido llega desde la red interna (Caddy en la nube, nginx en local). Un ingreso correcto limpia el contador de ese usuario. El bloqueo nunca es de la cuenta entera: un compañero que se equivoca desde otra red no deja afuera al dueño.
 
 | Método y ruta | Qué hace |
 | --- | --- |
 | `POST /auth/login` | Ingreso de alumno o docente. Devuelve un JWT de 12 h. |
 | `GET /alumnos/yo/inicio` | Cursos del alumno, próximo día de juego, racha, puntos y puesto. |
-| `GET /cursos/{cursoId}/partida-nueva?minijuego=trivia` | Preguntas para una partida, sin las respuestas. |
-| `POST /partidas` | Registra la partida, la corrige en el servidor y publica `partida.finalizada` vía outbox. Responde 202. |
+| `GET /cursos/{cursoId}/partida-nueva?minijuego=trivia` | Empieza una partida: preguntas sin las respuestas y una `sesion` firmada con las preguntas asignadas y si la partida suma al ranking. |
+| `POST /cursos/{cursoId}/preguntas/{preguntaId}/correccion` | Feedback de una pregunta de trivia dentro de la sesión. Vale la primera respuesta corregida. |
+| `POST /partidas` | Con la `sesion`, registra la partida, la corrige en el servidor y publica `partida.finalizada` vía outbox. Responde 202. |
 | `GET /partidas/{partidaId}/ranking` | `pendiente` hasta que el ranking procesó la partida; después, el puesto anterior y el nuevo. |
 | `GET /cursos/{cursoId}/ranking` | Ranking semanal del curso. |
 | `GET /cursos/{cursoId}/analitica` | Aciertos por concepto. Solo para el docente del curso. |
@@ -195,7 +206,7 @@ La retención es de 7 días. Ejemplo de `partida.finalizada`; el resto de los co
 ```json
 { "event_id": "5f0c7a1e-…", "tipo": "partida.finalizada", "version": 1, "ocurrido_en": "2026-11-18T14:05:12.345Z",
   "partida_id": "b1e5d0a2-…", "curso_id": "bio-2b", "alumno_id": "alu-01", "minijuego": "trivia", "puntaje": 820,
-  "respuestas": [{ "pregunta_id": "mitosis-p1", "concepto_id": "mitosis", "correcta": false, "tiempo_ms": 6400 }] }
+  "cuenta_para_ranking": true, "respuestas": [{ "pregunta_id": "mitosis-p1", "concepto_id": "mitosis", "correcta": false, "tiempo_ms": 6400 }] }
 ```
 
 ## Deploy en la nube
@@ -262,6 +273,6 @@ npm run dev -w apps/web
 - **Un solo broker de Kafka, sin replicación.** En producción harían falta 3 brokers con factor de replicación 3, o un servicio gestionado.
 - **Una sola VM.** Todo comparte 2 vCPU. Sirve para la demo y para medir el ASR, no para alta disponibilidad.
 - **El snapshot del replay es fijo.** Los contadores base de la demo (`scripts/analitica-base.sql`) representan el historial anterior a la retención. En producción, el snapshot se generaría periódicamente.
-- **Corrección sin estado.** Un alumno autenticado puede consultar la corrección de una pregunta sin haberla jugado. Se mitigaría con una sesión de partida en el servidor.
-- **Bonus de rapidez.** La API corrige los aciertos, pero el cliente declara `tiempo_ms`; un cliente modificado puede inflar el bonus. Para un ranking competitivo real habría que registrar el tiempo de cada respuesta en el servidor.
+- **Sesión de partida liviana.** La API fija las preguntas de cada partida, no deja cambiar una respuesta ya corregida y solo suma al ranking una partida por día y curso. Un alumno sí puede ver la corrección de una partida de práctica: como esas no suman puntos, no altera el ranking, aunque sí la analítica.
+- **Bonus de rapidez.** La API corrige los aciertos, pero el cliente declara `tiempo_ms`; un cliente modificado puede ganar hasta 20 puntos de bonus por pregunta. Para un ranking competitivo real habría que registrar en el servidor cuándo se muestra y cuándo se responde cada pregunta.
 - **Solo está la trivia.** Los demás minijuegos, el alta de cursos y la carga de contenido tienen pantallas de marcador: no son parte de lo que valida la PoC.

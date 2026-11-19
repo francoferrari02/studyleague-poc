@@ -22,6 +22,14 @@ El white paper presenta el problema y el producto, relaciona necesidades del neg
 
 Estas mejoras no agregan minijuegos ni cambian las reglas de puntaje. El bonus de rapidez aún usa el tiempo informado por el cliente; para un ranking competitivo real haría falta registrar el tiempo de cada respuesta en el servidor.
 
+## Cambios del 19/11 (todavía sin commit)
+
+| Cambio | Motivo |
+| --- | --- |
+| **Límite de login con la IP real y en Redis.** La API confía en `X-Forwarded-For` solo desde la red interna (`trustProxy`), y los contadores pasan a Redis: 10 fallos por IP y usuario, y 100 por IP, en 5 minutos. | Detrás de Caddy, todos los pedidos llegaban con la IP del proxy: diez fallos de cualquiera bloqueaban esa cuenta para todos. Ahora el bloqueo es por red, sobrevive a reinicios de la API y frena también a quien prueba muchas cuentas. |
+| **Sesión de partida en `POST /partidas`.** `partida-nueva` devuelve una sesión firmada con las preguntas asignadas; la corrección y el registro la exigen, y no se puede cambiar una respuesta ya corregida. Solo la primera partida del día por curso suma al ranking (`cuenta_para_ranking` en el evento); las demás son de práctica. | Antes un cliente podía mandar hasta 50 respuestas elegidas, consultar las correcciones y registrar partidas perfectas sin límite. |
+| **Guion de la demo en el README.** Simulador con `--alumnos 5`, puestos esperados de Tomás, reset el mismo día, ventanas separadas, partidas de práctica, día que no es de juego y sin carga en vivo. | Con `--alumnos 4` después del paso 2, Organelas quedaba en 40,0 % y no llegaba el aviso. |
+
 ## Verificación realizada
 
 - Se comprobaron compilación y tipos de los workspaces, configuración de Docker Compose y verificaciones locales de las fases 1 y 2. La prueba de fase 1 incluyó 200 partidas sin fallos.

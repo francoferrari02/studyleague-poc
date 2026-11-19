@@ -12,9 +12,9 @@ for(let i=0;;i++){try{await pedir('/health');break}catch(e){if(i===30)throw e;aw
 await pedir('/salud');
 const {token}=await pedir('/auth/alumno',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({usuario:'tomas',clave:'alumno123'})});
 const headers={'content-type':'application/json',authorization:`Bearer ${token}`};
-const {preguntas}=await pedir('/cursos/bio-2b/partida-nueva?minijuego=trivia',{headers});
 for(let n=0;n<3;n++){
- const res=await fetch(base+'/partidas',{method:'POST',headers,body:JSON.stringify({curso_id:'bio-2b',minijuego:'trivia',respuestas:preguntas.map(p=>({pregunta_id:p.pregunta_id,respuesta_dada:null,tiempo_ms:20000}))})});
+ const {preguntas,sesion}=await pedir('/cursos/bio-2b/partida-nueva?minijuego=trivia',{headers});
+ const res=await fetch(base+'/partidas',{method:'POST',headers,body:JSON.stringify({sesion,curso_id:'bio-2b',minijuego:'trivia',respuestas:preguntas.map(p=>({pregunta_id:p.pregunta_id,respuesta_dada:null,tiempo_ms:20000}))})});
  if(res.status!==202)throw Error('La partida no devolvió 202');
  const p=await res.json();const b4=await pedir(`/partidas/${p.partida_id}/ranking`,{headers});
  if(b4.estado!=='pendiente')throw Error('Se esperaba ranking pendiente');
