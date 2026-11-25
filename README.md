@@ -88,6 +88,8 @@ Para apagar todo, `docker compose down`. Para borrar también los datos, `docker
 
 ## Qué probar y qué se espera
 
+Para presentar la PoC en los 10 minutos de demo de la defensa, seguir el [guion paso a paso](docs/guion-demo.md).
+
 Antes de empezar, corré `bash scripts/demo-reset.sh`. En la nube es `./deploy/azure.sh ssh bash scripts/demo-reset.sh`.
 
 **El reset va el mismo día de la demo, justo antes y después de cualquier ensayo.** El ranking es semanal y la racha de Tomás se calcula desde la fecha del reset: un reset de otra semana deja el ranking vacío y la racha en 0. Además, el reset habilita de nuevo la partida del día de Tomás (ver paso 2).
