@@ -58,6 +58,7 @@ Requisitos: Docker con Compose v2 y al menos 4 GB de RAM asignados a Docker.
 
 ```bash
 docker compose up -d --build
+docker compose --profile tools build simulador  # necesario para la demo tras un pull
 ```
 
 La primera vez tarda unos minutos, por la construcción de las imágenes. Está listo cuando `docker compose ps` muestra todo en `running`, con `kafka-init` en `exited (0)`. No hace falta un `.env`: los valores por defecto sirven para correrlo en local, y `.env.example` documenta las variables.
