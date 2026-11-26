@@ -43,16 +43,16 @@ Una forma breve de presentarlo: «El curso y su historial son ficticios y están
 
    Si la VM acaba de arrancar, calentarla con una partida **antes del último reset**. La primera petición después del arranque puede tardar más.
 
-4. Confirmar el estado inicial en pantalla: Tomás tiene 1.270 puntos y puesto 7.º; en la analítica de **Biología · 2.º B**, Mitosis tiene 6 aciertos de 18 respuestas (33 %) y ya tiene un aviso; Organelas tiene 14 de 30 (47 %) y no tiene aviso. No marcar como «nuevo» el aviso precargado de Mitosis.
+4. Confirmar el estado inicial en pantalla: Tomás tiene 1.270 puntos y puesto 7.º; en la analítica de **Biología · 2.º B**, Mitosis tiene 6 aciertos de 18 respuestas (33 %) y ya tiene un aviso; Organelas tiene 13 de 31 (42 %) y no tiene aviso: queda a una partida del umbral. No marcar como «nuevo» el aviso precargado de Mitosis.
 
 ## Recorrido en vivo
 
 | Tiempo máximo | Acción visible | Mensaje y resultado esperado |
 | --- | --- | --- |
 | **0:00–1:00** | Mostrar brevemente el inicio de Tomás y la analítica inicial de Laura. | «Partimos de datos ficticios precargados. Vamos a provocar cambios reales». Señalar el puesto y los valores iniciales de Mitosis y Organelas. |
-| **1:00–4:00** | En Tomás: **Jugar → ¡Empezar!**. Contestar correctamente al menos algunas preguntas, terminar en **Ver resultado** y abrir **Ver ranking**. | La pantalla de resultado muestra aciertos, puntos de la partida, puesto y puesto anterior. El ranking procesa `partida.finalizada` en segundos. **Mostrar que los puntos semanales subieron**; el puesto puede seguir igual si no alcanzó para superar a otro alumno. |
-| **4:00–5:00** | Volver a Laura → **Biología · 2.º B → Analítica**. | Aumenta el número de respuestas de los conceptos preguntados; los aciertos suben solo en las preguntas bien contestadas. La página consulta la API cada 5 segundos. Una sola partida no tiene por qué generar un aviso nuevo. |
-| **5:00–7:00** | Abrir la campana de Laura. Desde la terminal, simular cinco partidas con bajo dominio en Organelas. | Las dos preguntas de Organelas de cada partida simulada se contestan mal. El concepto cae por debajo del 40 % y aparece el aviso nuevo **«Organelas tiene bajo dominio»**, normalmente en unos segundos. Mostrar también el valor actualizado en Analítica. |
+| **1:00–4:00** | En Tomás: **Jugar → ¡Empezar!**. Contestar **mal las dos preguntas de Organelas** («¿Qué organela realiza la fotosíntesis?» y «¿En qué organela se obtiene la mayor parte de la energía (ATP) de la célula?») y bien varias de las demás; terminar en **Ver resultado** y abrir **Ver ranking**. | La pantalla de resultado muestra aciertos, puntos de la partida, puesto y puesto anterior. El ranking procesa `partida.finalizada` en segundos. **Mostrar que los puntos semanales subieron**; el puesto puede seguir igual si no alcanzó para superar a otro alumno. |
+| **4:00–5:00** | Volver a Laura: abrir la campana y después **Biología · 2.º B → Analítica**. | Con las dos de Organelas mal, el concepto pasa a 13/33 (39 %) y aparece el aviso nuevo **«Organelas tiene bajo dominio»**, sin recargar (la web consulta cada 5 s). En Analítica aumentan las respuestas de los conceptos preguntados; los aciertos suben solo en las bien contestadas. |
+| **5:00–7:00** | Explicar el camino del aviso en Kafka UI (tópico `concepto.bajo_dominio`). **Solo si el aviso no apareció** (Tomás acertó alguna de Organelas): desde la terminal, simular cinco partidas con bajo dominio en Organelas. | Cada partida simulada contesta mal las dos de Organelas; el concepto cae por debajo del 40 % en la segunda o tercera y aparece el aviso. Si el aviso ya salió, el simulador no lo repite. |
 | **7:00–9:30** | Detener los consumidores de analítica y notificaciones, simular 30 partidas, abrir Kafka UI → **Consumer Groups → analitica**. Reactivar los consumidores y volver a mirar el grupo. | Las partidas se aceptan durante la interrupción; el *lag* de analítica crece. Al reactivar los consumidores, procesan los eventos pendientes y el *lag* vuelve a 0. El consumidor de ranking sigue activo. |
 | **9:30–10:00** | Volver a la analítica de Laura. | Cierre: «Una partida se guarda, se distribuye a consumidores independientes y, si uno se detiene, Kafka conserva lo pendiente para que lo procese al volver». |
 
@@ -61,7 +61,7 @@ Una forma breve de presentarlo: «El curso y su historial son ficticios y están
 Ejecutar desde la raíz del repositorio. Esperar a que cada comando termine antes del siguiente:
 
 ```bash
-# Aviso nuevo por Organelas
+# Solo si Tomás no disparó el aviso de Organelas
 docker compose run --rm simulador --alumnos 5 --segundos 0 --bajo-dominio organelas
 
 # Consumidor interrumpido y recuperación
