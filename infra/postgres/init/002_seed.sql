@@ -51,7 +51,7 @@ INSERT INTO alumnos (id, escuela_id, nombre_visible, usuario, clave_hash)
   ) AS v(id, nombre_visible);
 
 INSERT INTO cursos (id, docente_id, nombre, codigo, dias_juego, reinicio, minijuegos) VALUES
-  ('bio-2b', 'doc-laura', 'Biología · 2.º B', 'K7P2QX', '{1,3,5}', 'semanal',
+  ('bio-2b', 'doc-laura', 'Biología · 2.º B', 'K7P2QX', '{1,3,4,5}', 'semanal',
    '{verdadero_falso,trivia,ordenar_secuencia,emparejar_conceptos,definicion_palabras_clave}');
 
 INSERT INTO inscripciones (curso_id, alumno_id)

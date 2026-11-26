@@ -108,7 +108,7 @@ Para mostrarlo en vivo:
 **2. El puntaje impacta en el ranking al instante (criterio 1).**
 - Como Tomás, jugá una trivia. Al terminar, la pantalla de resultado muestra el puntaje y el **puesto nuevo** en menos de un segundo. Con 6 o 7 respuestas correctas sube al 5.º o 4.º puesto; con las 10, al 2.º.
 - **Solo la primera partida que el alumno empieza en el día suma al ranking del curso.** Las siguientes son de práctica: la pantalla dice «Partida de práctica», el puesto no cambia y las respuestas igual llegan a la analítica. Por eso, si ensayaste, volvé a correr `demo-reset` antes de mostrarlo.
-- Si hoy es día de juego del curso (lunes, miércoles o viernes), la racha pasa a 5. Otro día (por ejemplo, un jueves) se puede jugar igual: el inicio dice «¿Repasamos un poco?», la partida suma al ranking y la racha queda en 4.
+- Si hoy es día de juego del curso (lunes, miércoles, jueves o viernes), la racha pasa a 5. Otro día (por ejemplo, un martes) se puede jugar igual: el inicio dice «¿Repasamos un poco?», la partida suma al ranking y la racha queda en 4.
 - `GET /metricas` devuelve la latencia partida → ranking (p50, p95, máximo).
 
 **3. Aviso en vivo al docente (criterio 4).** Con las notificaciones de Laura abiertas en otra ventana, en la partida del paso 2 Tomás responde **mal las dos preguntas de Organelas** («¿Qué organela realiza la fotosíntesis?» y «¿En qué organela se obtiene la mayor parte de la energía (ATP) de la célula?»). Organelas pasa de 8/19 a 8/21 (38 %) y cruza el umbral (el aviso exige **menos** del 40 %). Si acierta una, queda en 9/21 (43 %) y no hay aviso.

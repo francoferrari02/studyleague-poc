@@ -7,7 +7,7 @@
  *
  * Reemplaza el ranking de la semana actual del curso. REDIS_URL por defecto: redis://localhost:6379.
  * También deja a Tomás con una racha de 4 días que terminó el día de juego anterior a hoy:
- * si juega hoy (y hoy es día de juego), pasa a 5. Biología · 2.º B juega lunes, miércoles y viernes.
+ * si juega hoy (y hoy es día de juego), pasa a 5. Biología · 2.º B juega lunes, miércoles, jueves y viernes.
  */
 import { Redis } from "ioredis";
 import { claveRanking, semanaIso } from "@studyleague/shared/ranking";
@@ -37,7 +37,7 @@ const semana = semanaIso();
 const clave = claveRanking(CURSO, semana);
 
 const miembros = Object.entries(PUNTOS).flatMap(([alumno, puntos]) => [puntos, alumno]);
-const DIAS_JUEGO_BIO_2B = [1, 3, 5];
+const DIAS_JUEGO_BIO_2B = [1, 3, 4, 5];
 const RACHA_DE_TOMAS = 4;
 const ultimoDia = diaDeJuegoAnterior(fechaLocal(), DIAS_JUEGO_BIO_2B)!;
 

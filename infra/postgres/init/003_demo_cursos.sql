@@ -9,6 +9,8 @@ INSERT INTO cursos (id,docente_id,nombre,codigo,dias_juego,reinicio,minijuegos) 
  ('historia-2b','doc-demo','Historia · 2.º B','HIS2BX','{4}','semanal','{}'),
  ('matematica-2b','doc-demo','Matemática · 2.º B','MAT2BX','{5}','semanal','{}')
 ON CONFLICT DO NOTHING;
+-- Biología · 2.º B juega también los jueves (bases creadas antes con '{1,3,5}').
+UPDATE cursos SET dias_juego='{1,3,4,5}' WHERE id='bio-2b';
 INSERT INTO inscripciones (curso_id,alumno_id) VALUES ('historia-2b','alu-01'),('matematica-2b','alu-01')
 ON CONFLICT DO NOTHING;
 COMMIT;
