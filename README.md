@@ -102,7 +102,7 @@ Para mostrarlo en vivo:
 
 **1. Estado inicial.**
 - Como `tomas`: Biología · 2.º B, puesto 7.º con 1.270 puntos y racha de 4 días.
-- Como `laura.gomez`, en la analítica del curso: Mitosis 6/18 (33 %) con aviso y Organelas 14/30 (47 %) sin aviso. Los demás conceptos están entre 55 % y 82 %.
+- Como `laura.gomez`, en la analítica del curso: Mitosis 6/18 (33 %) con aviso y Organelas 13/31 (42 %) sin aviso, a una partida del umbral. Los demás conceptos están entre 55 % y 82 %.
 - En notificaciones, Laura tiene un aviso por Mitosis.
 
 **2. El puntaje impacta en el ranking al instante (criterio 1).**
@@ -111,13 +111,15 @@ Para mostrarlo en vivo:
 - Si hoy es día de juego del curso (lunes, miércoles o viernes), la racha pasa a 5. Otro día (por ejemplo, un jueves) se puede jugar igual: el inicio dice «¿Repasamos un poco?», la partida suma al ranking y la racha queda en 4.
 - `GET /metricas` devuelve la latencia partida → ranking (p50, p95, máximo).
 
-**3. Aviso en vivo al docente (criterio 4).** Con las notificaciones de Laura abiertas, corré:
+**3. Aviso en vivo al docente (criterio 4).** Con las notificaciones de Laura abiertas en otra ventana, en la partida del paso 2 Tomás responde **mal las dos preguntas de Organelas** («¿Qué organela realiza la fotosíntesis?» y «¿En qué organela se obtiene la mayor parte de la energía (ATP) de la célula?»). Organelas pasa de 13/31 a 13/33 (39 %) y cruza el umbral. Si acierta una, queda en 14/33 (42 %) y no hay aviso.
+
+Para dispararlo sin jugar a mano (o si Tomás acertó alguna de Organelas), corré:
 
 ```bash
 docker compose run --rm simulador --alumnos 5 --segundos 0 --bajo-dominio organelas
 ```
 
-- Cada partida simulada falla las dos preguntas de Organelas. Organelas baja del 40 % entre la segunda y la quinta partida, según cuántas de Organelas acertó Tomás en el paso 2 (con las dos bien, en la quinta: 16/42). Si se corre antes del paso 2, baja en la tercera (14/36).
+- Cada partida simulada falla las dos preguntas de Organelas. Antes del paso 2, Organelas baja del 40 % en la primera (13/33); si Tomás acertó una, en la segunda (14/37); si acertó las dos, en la tercera (15/39). Si el aviso ya salió en el paso 2, el simulador no lo repite.
 - El primer alumno simulado es Tomás (`alu-01`). Si ya jugó en el paso 2, esa partida es de práctica: no cambia su puesto, pero sí cuenta para la analítica.
 - En unos segundos le llega a Laura el aviso «Organelas tiene bajo dominio», sin recargar la página (la web consulta los avisos cada 5 s).
 - En Kafka UI aparece el evento en `concepto.bajo_dominio`.

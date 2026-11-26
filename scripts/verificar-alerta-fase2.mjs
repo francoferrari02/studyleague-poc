@@ -13,8 +13,8 @@ try {
  execFileSync('docker',['compose','run','--rm','-T','simulador','--alumnos','4','--segundos','0','--bajo-dominio','organelas'],{stdio:'pipe',timeout:120000});
  await expect(page.locator('.aviso').filter({hasText:'Organelas'})).toHaveCount(1,{timeout:12000});
  const visible=Date.now();
- // El umbral se cruza al acumular seis respuestas incorrectas sobre las 30 iniciales.
- const condicion=Number(sql(`WITH por_partida AS (SELECT p.id,p.finalizada_en,count(*)::int AS n FROM partidas p JOIN respuestas r ON r.partida_id=p.id JOIN preguntas q ON q.id=r.pregunta_id WHERE q.concepto_id='organelas' GROUP BY p.id), acumulado AS (SELECT finalizada_en,sum(n) OVER(ORDER BY finalizada_en,id) AS n FROM por_partida) SELECT extract(epoch FROM min(finalizada_en))*1000 FROM acumulado WHERE n>=6;`));
+ // El umbral se cruza al acumular dos respuestas incorrectas sobre las 31 iniciales (13/33).
+ const condicion=Number(sql(`WITH por_partida AS (SELECT p.id,p.finalizada_en,count(*)::int AS n FROM partidas p JOIN respuestas r ON r.partida_id=p.id JOIN preguntas q ON q.id=r.pregunta_id WHERE q.concepto_id='organelas' GROUP BY p.id), acumulado AS (SELECT finalizada_en,sum(n) OVER(ORDER BY finalizada_en,id) AS n FROM por_partida) SELECT extract(epoch FROM min(finalizada_en))*1000 FROM acumulado WHERE n>=2;`));
  const latencia=visible-condicion;
  await page.screenshot({path:'.verificacion/D8-final.png',fullPage:true});
  execFileSync('docker',['compose','run','--rm','-T','simulador','--alumnos','2','--segundos','0','--bajo-dominio','organelas'],{stdio:'pipe',timeout:120000});
