@@ -18,7 +18,7 @@ for intento in {1..30}; do
 done
 docker compose run --rm -T kafka-init
 docker compose exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < infra/postgres/init/003_demo_cursos.sql
-cat scripts/demo-reset.sql scripts/analitica-base.sql \
+cat scripts/demo-reset.sql scripts/analitica-base.sql scripts/analitica-detalle-base.sql \
   | docker compose exec -T postgres sh -c 'psql -q -v ON_ERROR_STOP=1 -1 -f - -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 # Redis es exclusivo de esta PoC: ranking, rachas, idempotencia y métricas.
 docker compose exec -T redis redis-cli FLUSHDB

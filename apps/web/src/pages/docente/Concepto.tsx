@@ -3,10 +3,118 @@ import { ArrowLeft, Check, Warning } from "@phosphor-icons/react";
 import { useDatos } from "../../hooks";
 import { Chip, Encabezado, ErrorVista, Skeleton, Tarjeta } from "../../components/ui";
 import { nivel, porcentaje, tono, type Concepto as Conteo } from "./datos";
-interface Detalle extends Conteo { curso_nombre: string; alumnos_distintos: number; preguntas: { id: string; enunciado: string; opciones: string[]; respuesta_correcta: string; explicacion: string; respuestas: number; errores: number; distribucion: { respuesta_dada: string | null; cantidad: number }[] }[] }
+
+interface PreguntaDetalle {
+  id: string;
+  enunciado: string;
+  opciones: string[];
+  respuesta_correcta: string;
+  explicacion: string;
+  respuestas: number;
+  errores: number;
+  distribucion: { respuesta_dada: string | null; cantidad: number }[];
+}
+
+interface Detalle extends Conteo {
+  curso_nombre: string;
+  alumnos_distintos: number;
+  respuestas_historial: number;
+  preguntas: PreguntaDetalle[];
+}
+
 export function Concepto() {
-  const { cursoId, conceptoId } = useParams(); const { datos, error, reintentar } = useDatos<Detalle>(`/cursos/${encodeURIComponent(cursoId!)}/conceptos/${encodeURIComponent(conceptoId!)}`,5000);
+  const { cursoId, conceptoId } = useParams();
+  const { datos, error, reintentar } = useDatos<Detalle>(
+    `/cursos/${encodeURIComponent(cursoId!)}/conceptos/${encodeURIComponent(conceptoId!)}`,
+    5000,
+  );
   if (error && !datos) return <ErrorVista error={error} reintentar={reintentar} />;
   if (!datos) return <Skeleton />;
-  return <div className="pila detalle-concepto"><Link className="fila enlace" to={`/docente/cursos/${encodeURIComponent(cursoId!)}/analitica`}><ArrowLeft size={18} />Volver a Analítica</Link><Encabezado titulo={datos.nombre}><Chip tono={tono(datos)}>{nivel(datos)}</Chip></Encabezado><p className="muted">{datos.curso_nombre}</p>{error && <ErrorVista error={error} reintentar={reintentar} />}<div className="kpis"><Tarjeta><strong>{datos.respuestas}</strong><p>respuestas</p></Tarjeta><Tarjeta><strong>{porcentaje(datos)===null ? "—" : `${porcentaje(datos)}%`}</strong><p>de aciertos</p></Tarjeta><Tarjeta><strong>{datos.alumnos_distintos}</strong><p>alumnos respondieron</p></Tarjeta></div><div className="detalle-columnas"><Tarjeta className="pila"><h2>Preguntas más falladas</h2>{datos.preguntas.filter(p=>p.respuestas>0 && p.errores>0).slice(0,1).map(p=>{const maximo=Math.max(...p.distribucion.map(d=>d.cantidad),0);return <section className="pregunta-detalle pila" key={p.id}><h3>{p.enunciado}</h3><p className="muted">Opción elegida por los alumnos · {p.respuestas} respuestas a esta pregunta</p>{p.opciones.map((o,i)=>{const cantidad=p.distribucion.find(d=>d.respuesta_dada===o)?.cantidad ?? 0;const porc=p.respuestas ? Math.round(cantidad/p.respuestas*100):0;return <div className="opcion-distribucion" key={o}><div className="fila entre"><strong>{String.fromCharCode(65+i)} · {o}</strong>{o===p.respuesta_correcta ? <Chip tono="verde"><Check size={14} />Correcta</Chip> : cantidad>0 && cantidad===maximo ? <Chip tono="coral">Más elegida</Chip> : null}</div><div className="distribucion-pista"><div style={{width:`${porc}%`,background:o===p.respuesta_correcta ? "var(--verde)" : cantidad===maximo ? "var(--coral)" : "var(--violeta-suave)"}} /></div><p className="muted">{cantidad} respuestas · {porc}%</p></div>})}{p.distribucion.some(d=>d.respuesta_dada===null) && <p className="muted">Sin responder por tiempo agotado: {p.distribucion.find(d=>d.respuesta_dada===null)?.cantidad}</p>}<div className="explicacion-docente"><strong>Explicación de la pregunta</strong><p>{p.explicacion}</p></div></section>})}{!datos.preguntas.some(p=>p.respuestas>0 && p.errores>0) && <p className="vacio">Todavía no hay respuestas incorrectas de partidas para mostrar su distribución.</p>}</Tarjeta><div className="pila"><Tarjeta className="pila"><h2 className="fila"><Warning size={20} />Estado de la alerta</h2><p>{datos.alerta_enviada ? "La alerta de bajo dominio ya fue enviada." : "No hay una alerta activa enviada para este estado."}</p><Link className="enlace" to="/docente/cursos?notificaciones=1">Ver notificaciones</Link></Tarjeta><Tarjeta className="pila"><h2>Qué hacer ahora</h2><p>Reforzar en la próxima clase</p><p className="muted">Usá las respuestas más elegidas para orientar el repaso.</p></Tarjeta></div></div></div>;
+
+  const preguntas = datos.preguntas.filter(p => p.respuestas > 0);
+  return (
+    <div className="pila detalle-concepto">
+      <Link className="fila enlace" to={`/docente/cursos/${encodeURIComponent(cursoId!)}/analitica`}>
+        <ArrowLeft size={18} /> Volver a Analítica
+      </Link>
+      <Encabezado titulo={datos.nombre}><Chip tono={tono(datos)}>{nivel(datos)}</Chip></Encabezado>
+      <p className="muted">{datos.curso_nombre}</p>
+      {error && <ErrorVista error={error} reintentar={reintentar} />}
+      <div className="kpis">
+        <Tarjeta><strong>{datos.respuestas}</strong><p>respuestas</p></Tarjeta>
+        <Tarjeta><strong>{porcentaje(datos) === null ? "—" : `${porcentaje(datos)}%`}</strong><p>de aciertos</p></Tarjeta>
+        <Tarjeta><strong>{datos.alumnos_distintos}</strong><p>alumnos respondieron</p></Tarjeta>
+      </div>
+      <div className="detalle-columnas">
+        <Tarjeta className="pila">
+          <h2>Preguntas del concepto</h2>
+          {datos.respuestas_historial > 0 && (
+            <p className="muted">
+              Incluye {datos.respuestas_historial} respuestas históricas de ejemplo y las partidas nuevas.
+            </p>
+          )}
+          {preguntas.map(p => {
+            const maximo = Math.max(...p.distribucion.map(d => d.cantidad), 0);
+            return (
+              <section className="pregunta-detalle pila" key={p.id}>
+                <h3>{p.enunciado}</h3>
+                <p className="muted">Opciones elegidas · {p.respuestas} respuestas a esta pregunta</p>
+                {p.opciones.map((opcion, i) => {
+                  const cantidad = p.distribucion.find(d => d.respuesta_dada === opcion)?.cantidad ?? 0;
+                  const porc = p.respuestas ? Math.round(cantidad / p.respuestas * 100) : 0;
+                  return (
+                    <div className="opcion-distribucion" key={opcion}>
+                      <div className="fila entre">
+                        <strong>{String.fromCharCode(65 + i)} · {opcion}</strong>
+                        {opcion === p.respuesta_correcta
+                          ? <Chip tono="verde"><Check size={14} />Correcta</Chip>
+                          : cantidad > 0 && cantidad === maximo
+                            ? <Chip tono="coral">Más elegida</Chip>
+                            : null}
+                      </div>
+                      <div className="distribucion-pista">
+                        <div style={{
+                          width: `${porc}%`,
+                          background: opcion === p.respuesta_correcta
+                            ? "var(--verde)"
+                            : cantidad === maximo ? "var(--coral)" : "var(--amarillo)",
+                        }} />
+                      </div>
+                      <p className="muted">{cantidad} respuestas · {porc}%</p>
+                    </div>
+                  );
+                })}
+                {p.distribucion.some(d => d.respuesta_dada === null) && (
+                  <p className="muted">
+                    Sin responder por tiempo agotado: {p.distribucion.find(d => d.respuesta_dada === null)?.cantidad}
+                  </p>
+                )}
+                <div className="explicacion-docente">
+                  <strong>Explicación de la pregunta</strong>
+                  <p>{p.explicacion}</p>
+                </div>
+              </section>
+            );
+          })}
+          {preguntas.length === 0 && (
+            <p className="vacio">Todavía no hay respuestas a las preguntas de este concepto.</p>
+          )}
+        </Tarjeta>
+        <div className="pila">
+          <Tarjeta className="pila">
+            <h2 className="fila"><Warning size={20} />Estado de la alerta</h2>
+            <p>{datos.alerta_enviada
+              ? "La alerta de bajo dominio ya fue enviada."
+              : "No hay una alerta activa enviada para este estado."}</p>
+            <Link className="enlace" to="/docente/cursos?notificaciones=1">Ver notificaciones</Link>
+          </Tarjeta>
+          <Tarjeta className="pila">
+            <h2>Qué hacer ahora</h2>
+            <p>Reforzar en la próxima clase</p>
+            <p className="muted">Usá las respuestas más elegidas para orientar el repaso.</p>
+          </Tarjeta>
+        </div>
+      </div>
+    </div>
+  );
 }

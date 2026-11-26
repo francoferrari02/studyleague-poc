@@ -40,7 +40,9 @@ assert.deepEqual((await pedir(ruta,{token:alumno.token,cuerpo:{respuesta_dada:'A
 // Vale la primera respuesta corregida: volver a consultar con otra no la cambia.
 assert.equal((await pedir(ruta,{token:alumno.token,cuerpo:{respuesta_dada:null,sesion}})).body.correcta,true);
 assert.equal(sql('SELECT (SELECT count(*) FROM partidas)||\':\'||(SELECT count(*) FROM outbox)||\':\'||(SELECT count(*) FROM respuestas);'),antes);
-const cuentaPrevia=Number(sql("SELECT count(*) FROM respuestas r JOIN partidas p ON p.id=r.partida_id WHERE p.curso_id='bio-2b' AND r.pregunta_id='mitosis-p1' AND r.respuesta_dada #>> '{}' = 'Metafase';"));
+const detallePrevio=(await pedir('/cursos/bio-2b/conceptos/mitosis',{token:laura.token})).body;
+const preguntaPrevia=detallePrevio.preguntas.find(p=>p.id==='mitosis-p1');
+const cuentaPrevia=preguntaPrevia.distribucion.find(d=>d.respuesta_dada==='Metafase').cantidad;
 // POST /partidas: sin sesión, con preguntas que no son las asignadas o cambiando una respuesta ya corregida → 400.
 const todas=listado.body.preguntas.map(p=>({pregunta_id:p.pregunta_id,respuesta_dada:null,tiempo_ms:20000}));
 assert.equal((await pedir('/partidas',{token:alumno.token,cuerpo:{curso_id:'bio-2b',minijuego:'trivia',respuestas:todas}})).status,400);
@@ -55,6 +57,8 @@ const dobles=await Promise.all([pedir('/partidas',{token:alumno.token,cuerpo}),p
 assert.ok(dobles.every(r=>r.status===202&&r.body.cuenta_para_ranking===false));assert.equal(dobles[0].body.event_id,dobles[1].body.event_id);assert.equal(dobles[0].body.puntaje,0);assert.equal(sql(`SELECT count(*) FROM partidas WHERE id='${id}';`),'1');
 const detalle=(await pedir('/cursos/bio-2b/conceptos/mitosis',{token:laura.token})).body;
 const pregunta=detalle.preguntas.find(p=>p.id==='mitosis-p1');assert.equal(pregunta.distribucion.find(d=>d.respuesta_dada==='Metafase').cantidad,cuentaPrevia+1);
+assert.equal(detalle.preguntas.reduce((n,p)=>n+p.respuestas,0),detalle.respuestas);
+assert.ok(detalle.alumnos_distintos>1);
 // Primer envío gana: el feedback no altera el resultado final ni los reintentos.
 assert.equal((await pedir('/partidas',{token:alumno.token,cuerpo:{...cuerpo,respuestas:cuerpo.respuestas.map(r=>r.pregunta_id==='mitosis-p1'?{...r,respuesta_dada:'Anafase'}:r)}})).body.puntaje,0);
 const externo=await login('alu-30','alumno123','alumno');

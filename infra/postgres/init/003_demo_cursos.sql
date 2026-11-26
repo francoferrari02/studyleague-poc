@@ -1,4 +1,11 @@
 -- Cursos adicionales de A3/D2; solo datos y aplicación idempotente sobre bases existentes.
+-- En bases creadas antes de este cambio, el reset también incorpora esta tabla.
+CREATE TABLE IF NOT EXISTS analitica_respuestas_base (
+  pregunta_id    TEXT NOT NULL REFERENCES preguntas(id),
+  alumno_id      TEXT NOT NULL REFERENCES alumnos(id),
+  respuesta_dada TEXT NOT NULL,
+  PRIMARY KEY (pregunta_id, alumno_id)
+);
 BEGIN;
 INSERT INTO docentes (id, escuela_id, nombre, email, usuario, clave_hash)
 VALUES ('doc-demo', 'esc-12', 'Docente de demo', 'demo@escuela12.edu.ar', 'docente.demo', crypt('docente123',gen_salt('bf')))

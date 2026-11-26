@@ -64,7 +64,7 @@ pausa
 paso "2. Se pierde la proyección: se detiene analitica-consumer y se borra su tabla"
 docker compose stop analitica-consumer >/dev/null 2>&1
 trap 'docker compose start analitica-consumer >/dev/null 2>&1' EXIT
-psql -c "TRUNCATE analitica_concepto; DELETE FROM eventos_procesados WHERE consumidor = '$GRUPO';"
+psql -c "TRUNCATE analitica_concepto, analitica_respuestas_base; DELETE FROM eventos_procesados WHERE consumidor = '$GRUPO';"
 tabla
 echo "La web del docente ahora muestra el curso sin datos. El ranking y las rachas siguen andando."
 pausa
@@ -81,7 +81,7 @@ echo "Offsets en el inicio: lag = $(lag) eventos por releer."
 pausa
 
 paso "4. Se restaura el snapshot base y analitica-consumer relee el historial"
-psql -1 -f - < scripts/analitica-base.sql
+cat scripts/analitica-base.sql scripts/analitica-detalle-base.sql | psql -1 -f -
 INICIO=$(date +%s)
 docker compose start analitica-consumer >/dev/null 2>&1
 trap - EXIT

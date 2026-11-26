@@ -109,6 +109,15 @@ CREATE TABLE analitica_concepto (
   PRIMARY KEY (curso_id, concepto_id)
 );
 
+-- Respuestas históricas ficticias de la demo, anteriores a los eventos retenidos
+-- en Kafka. Permiten desglosar el snapshot de analítica por pregunta y opción.
+CREATE TABLE analitica_respuestas_base (
+  pregunta_id    TEXT NOT NULL REFERENCES preguntas(id),
+  alumno_id      TEXT NOT NULL REFERENCES alumnos(id),
+  respuesta_dada TEXT NOT NULL,
+  PRIMARY KEY (pregunta_id, alumno_id)
+);
+
 CREATE TABLE notificaciones (
   id          BIGSERIAL PRIMARY KEY,
   event_id    UUID NOT NULL UNIQUE,
